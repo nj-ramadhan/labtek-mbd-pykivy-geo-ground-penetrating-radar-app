@@ -1,0 +1,437 @@
+#:kivy 2.1.0
+#:import NoTransition kivy.uix.screenmanager.NoTransition
+#:import MapView kivy.garden.mapview.MapView
+#:import MapMarkerPopup kivy.garden.mapview.MapMarkerPopup
+#:import MeshLinePlot kivy.garden.graph.MeshLinePlot
+
+<MainWindow>:
+    BoxLayout:
+        orientation: "vertical"
+		# header layout
+        BoxLayout:
+            id: header_layout
+            orientation: "horizontal"
+            padding: 20
+			size_hint_y: 0.1
+            Image:
+                id: logo
+                source:'asset/logo.png'
+                size_hint_x: 0.2
+                allow_stretch: True
+
+            BoxLayout:
+                orientation: "vertical"
+                padding: 0, 15
+
+                Label:
+                    id: subtitle            
+                    text: "GROUND PENETRATION RADAR (GPR)"
+                    bold: True
+                    font_size: 80
+                    size_hint_y: 2
+                    color: 0, 0, 0
+                
+            # Image:
+            #     id: powered_by
+            #     source:'asset/powered.png'
+            #     size_hint_x: 0.05
+            #     allow_stretch: True
+
+		
+		# comm header layout
+		BoxLayout:
+			id: comm_header_layout
+			orientation: "vertical"
+			size_hint_y: 0.14
+			padding:20
+			spacing:20
+
+			Label:
+				id : label_page
+				text: "SETTING SCREEN"
+				bold: True
+				font_size: 64
+				color: 0, 0, 0
+
+			Label:
+				id : label_notif
+				size_hint_y: 0.4
+				text: "notification"
+				bold: True
+				font_size: 32
+				color: 1, 0, 0
+
+			BoxLayout:
+				orientation: "horizontal"
+				spacing:50
+
+				Label:
+					text: "DEVICE COMMUNICATION PORT"
+					font_size: 44
+					color: 0, 0, 0
+
+				TextInput:
+					id: txt_com
+					multiline: False
+					font_size: 36
+
+				Button:
+					id: bt_refresh
+					text: "REFRESH"
+					font_size: 44
+					on_press: root.refresh()
+
+				Button:
+					id: bt_open_close_serial
+					text: "OPEN COMMUNICATION"
+					font_size: 44
+					disabled: True
+					on_press: root.open_close_serial()
+
+		# setting layout
+		BoxLayout:
+			id: layout_setting
+			orientation: "vertical"
+			size_hint_y: 0.6
+			padding:20
+			spacing:20
+
+			BoxLayout:
+				orientation: "horizontal"
+				size_hint_y: 0.7
+				BoxLayout:
+					orientation: "vertical"
+					canvas.before:
+						Color:
+							rgba: 0.5, 0, 0, 1
+						Line:
+							width: 2
+							rectangle: self.x, self.y, self.width, self.height
+
+					Label:
+						text: "JENIS GELOMBANG"
+						bold: True
+						font_size: 44
+						color: 0, 0, 0
+						size_hint_y: 0.25
+
+					Label:
+						text: ""
+						size_hint_y: 0.1
+
+					GridLayout:
+						cols:2
+						row_force_default: True
+						row_default_height: 120
+
+						CheckBox:
+							group: "waveform"
+							color: 0.5, 0, 0
+							size_hint_x: None
+							width: 300
+							on_active: root.checkbox_click(self, self.active, "SEGITIGA")
+
+						Label:
+							text: "SEGITIGA"
+							text_size: self.size
+							halign: "left"
+							valign: "middle"
+							font_size:44
+							color: 0, 0, 0
+
+						CheckBox:
+							group: "waveform"
+							color: 0.5, 0, 0
+							size_hint_x: None
+							width: 300
+							on_active: root.checkbox_click(self, self.active, "PERSEGI")
+							
+						Label:
+							text: "PERSEGI"
+							text_size: self.size
+							halign: "left"
+							valign: "middle"
+							font_size:44
+							color: 0, 0, 0
+
+						CheckBox:
+							group: "waveform"
+							color: 0.5, 0, 0
+							size_hint_x: None
+							width: 300
+							on_active: root.checkbox_click(self, self.active, "GIGI GERGAJI")		
+
+						Label:
+							text: "GIGI GERGAJI"
+							text_size: self.size
+							halign: "left"
+							valign: "middle"
+							font_size:44
+							color: 0, 0, 0
+
+					Label:
+						id: output_label
+						text: ""
+						font_size:36
+						bold: True
+						color: 0, 0, 0
+						size_hint_y: 0.7
+
+				BoxLayout:
+					orientation: "vertical"
+					canvas.before:
+						Color:
+							rgba: 0, 0.5, 0, 1
+						Line:
+							width: 2
+							rectangle: self.x, self.y, self.width, self.height
+					
+					Label:
+						text: "RENTANG FREKUENSI"
+						bold: True
+						font_size: 44
+						color: 0, 0, 0
+						size_hint_y: 0.1
+
+					GridLayout:
+						cols:2
+
+						Label:
+							text: "Min"
+							font_size:40
+							color: 0, 0, 0
+
+						Label:
+							text: "Max"
+							font_size:40
+							color: 0, 0, 0
+
+						Slider:
+							id: slider_min
+							min: 190
+							max: 210
+							step: 1
+							orientation: 'vertical'
+
+						Slider:
+							id: slider_max
+							min: 190
+							max: 210
+							step: 1
+							value: 210
+							orientation: 'vertical'
+
+						Label:
+							text: str(slider_min.value) + " Mhz" 
+							font_size:36
+							color: 0, 0, 0
+							bold: True
+						
+						Label:
+							text: str(slider_max.value) + " Mhz"
+							font_size:36
+							color: 0, 0, 0
+							bold: True
+
+				BoxLayout:
+					orientation: "vertical"
+					canvas.before:
+						Color:
+							rgba: 0, 0, 0.5, 1
+						Line:
+							width: 2
+							rectangle: self.x, self.y, self.width, self.height
+
+					Label:
+						text: "PERIODE WAKTU"
+						bold: True
+						font_size: 44
+						color: 0, 0, 0
+						size_hint_y: 0.1
+
+					GridLayout:
+						cols:1
+						Label:
+							text: ""
+							size_hint_y: 0.4
+							font_size:44
+							
+						Slider:
+							id: slider_interval
+							min: 10
+							max: 100
+							step: 10
+							orientation: 'vertical'
+
+						Label:
+							text: str(slider_interval.value) + " milli detik" 
+							font_size:36
+							color: 0, 0, 0
+							bold: True
+	
+			# graph carrier layout
+			BoxLayout:
+				id: layout_graph_carrier
+				orientation: "vertical"
+				size_hint_y: 0.3
+				padding:20
+				spacing:20			
+		
+		# graph layout
+		BoxLayout:
+			id: layout_graph
+			orientation: "vertical"
+			size_hint_y: 0.6
+			padding:20
+			spacing:20
+
+			BoxLayout:
+				id: layout_graph_signal
+				orientation: "vertical"
+
+			BoxLayout:
+				size_hint_y: 0.1
+				padding:30
+				spacing:30
+				
+				Slider:
+					id: slider_distance
+					min: 0
+					max: 99000
+					step: 10
+					orientation: 'horizontal'
+					size_hint_x: 0.62
+					padding:150
+
+				Label:
+					id: txt_slider_distance
+					text: "JARAK " + str(slider_distance.value) + " mm" 
+					font_size:36
+					color: 0, 0, 0
+					bold: True
+					size_hint_x: 0.38
+
+		# map layout
+		BoxLayout:
+			id: layout_map
+			orientation: "vertical"
+			size_hint_y: 0.6
+			padding:20
+			spacing:20
+			
+			BoxLayout:
+				orientation: "horizontal"
+				size_hint_y: 0.08
+				spacing:20
+				Label:
+					text: "LONGITUDE"
+					font_size: 44
+					color: 0, 0, 0
+				
+				TextInput:
+					id: txt_lon
+					text: str(root.lon)
+					multiline: False
+					font_size: 44
+					halign: "center"
+
+				Label:
+					text: "LATITUDE"
+					font_size: 44
+					color: 0, 0, 0
+				
+				TextInput:
+					id: txt_lat
+					text: str(root.lat)
+					multiline: False
+					font_size: 44
+					halign: "center"
+
+				Label:
+					text: "ZOOM:"
+					font_size: 44
+					color: 0, 0, 0
+
+				Label:
+					id: txt_zoom
+					text: str(slider_zoom.value)
+					font_size: 44
+					color: 0, 0, 0
+
+				Slider:
+					id: slider_zoom
+					min: 1
+					max: 19
+					step: 1
+					value: root.zoom
+
+				Button:
+					text: "TANDAI"
+					font_size: 44
+					on_press: root.map_mark()
+			MapView:
+				id: map_view
+				lon: root.lon
+				lat: root.lat
+				zoom: root.zoom
+
+				MapMarkerPopup:
+					id: map_marker
+					source: "asset/marker.png"
+					lon: root.lon
+					lat: root.lat
+		# button interfacing layout
+		BoxLayout:
+			orientation: "horizontal"
+			size_hint_y: 0.08
+			padding:20	
+			spacing:50			
+			Button:
+				id: bt_send_signal
+				text: "GENERATE SIGNAL"
+				font_size: 44
+				disabled: True
+				on_press: root.send_signal()
+
+			Button:
+				id: bt_update_graph
+				text: "UPDATE GRAPH"
+				font_size: 44
+				disabled: True
+				on_press: root.request_graph()
+
+			Button:
+				id: bt_update_map
+				text: "UPDATE MAP"
+				font_size: 44
+				disabled: True
+				on_press: root.request_map()
+
+		# button navigation layout
+		BoxLayout:
+			orientation: "horizontal"
+			size_hint_y: 0.08
+			padding:20
+			spacing:50
+
+			Button:
+				id: bt_screen_setting
+				text: "SETTING"
+				font_size: 44
+				on_press: root.setting_screen()
+
+			Button:
+				id: bt_screen_graph
+				text: "GRAPH"
+				font_size: 44
+				on_press: root.graph_screen()
+
+			Button:
+				id: bt_screen_map
+				text: "MAP"
+				font_size: 44
+				on_press: root.map_screen()
+
+
+
+
