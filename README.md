@@ -1,5 +1,5 @@
-# gpr_app
-Desktop based application for GPR (Ground Penetrating Radar) Application
+# GPR PC APP
+PC based application for GPR (Ground Penetrating Radar) Application
 
 Ground-penetrating radar (GPR) is a geophysical method that uses radar pulses to image the subsurface. 
 It is a non-intrusive method of surveying the sub-surface to investigate underground utilities such as concrete, asphalt, metals, pipes, cables or masonry.
