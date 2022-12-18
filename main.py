@@ -109,7 +109,7 @@ class MainWindow(BoxLayout):
         self.ids.bt_update_graph.disabled = False
         self.ids.bt_update_map.disabled = True
 
-        self.ids.label_page.text = "GRAFIK SCREEN"
+        self.ids.label_page.text = "GRAPH SCREEN"
 
     def map_screen(self):
         self.ids.layout_graph_carrier.clear_widgets()
@@ -126,7 +126,7 @@ class MainWindow(BoxLayout):
         self.ids.bt_update_graph.disabled = True
         self.ids.bt_update_map.disabled = False
 
-        self.ids.label_page.text = "PETA SCREEN"
+        self.ids.label_page.text = "MAP SCREEN"
 
     def refresh(self):
         ports = serial.tools.list_ports.comports()
@@ -332,15 +332,15 @@ class MainWindow(BoxLayout):
 
         x_axis = np.linspace(0, 100, int(10000/self.dt_interval), endpoint=True) #20 data per periode in 100ms axis
 
-        if("SEGITIGA" in self.dt_waveform):
+        if("TRIANGLE" in self.dt_waveform):
             y_axis = offset + (4 * amplitude / self.dt_interval) * np.abs((((x_axis - self.dt_interval / 4) % self.dt_interval) + self.dt_interval) % self.dt_interval - self.dt_interval / 2 ) - amplitude
             data_adc = np.round(0.0 + (1.0 - 0.0) * ((y_axis - 160) / (360 - 160)) , 2)
             # print(y_axis)
-        elif("PERSEGI" in self.dt_waveform):
+        elif("SQUARE" in self.dt_waveform):
             y_axis = offset + (amplitude * np.sign (np.sin(2 * np.pi * 1 / self.dt_interval * x_axis)))
             data_adc = np.round(0.0 + (1.0 - 0.0) * ((y_axis - 160) / (360 - 160)) , 2)
             # print(y_axis)
-        elif("GIGI GERGAJI" in self.dt_waveform):
+        elif("SAWTOOTH" in self.dt_waveform):
             y_axis = self.dt_frequency_min + ((2 * amplitude / self.dt_interval) * (x_axis % self.dt_interval))
             data_adc = np.round(0.0 + (1.0 - 0.0) * ((y_axis - 160) / (360 - 160)) , 2)
             # print(y_axis)
@@ -420,13 +420,13 @@ class MainWindow(BoxLayout):
             waveforms = ''
             for x in self.checks:
                 waveforms = f'{waveforms} {x}'
-            self.ids.output_label.text = f'BENTUK GELOMBANG {waveforms} DIPILIH'
+            self.ids.output_label.text = f'{waveforms} WAVEFORM CHOSEN'
         else:
             self.checks.remove(waves)
             waveforms = ''
             for x in self.checks:
                 waveforms = f'{waveforms} {x}'
-            self.ids.output_label.text = f'BENTUK GELOMBANG {waveforms} DIPILIH'
+            self.ids.output_label.text = ''
         
         self.dt_waveform = waveforms
 
