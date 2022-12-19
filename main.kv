@@ -2,7 +2,6 @@
 #:import NoTransition kivy.uix.screenmanager.NoTransition
 #:import MapView kivy.garden.mapview.MapView
 #:import MapMarkerPopup kivy.garden.mapview.MapMarkerPopup
-#:import MeshLinePlot kivy.garden.graph.MeshLinePlot
 
 <MainWindow>:
     BoxLayout:
@@ -399,6 +398,13 @@
 				font_size: 44
 				disabled: True
 				on_press: root.request_graph()
+
+			Button:
+				id: bt_save_graph
+				text: "SAVE GRAPH"
+				font_size: 44
+				disabled: True
+				on_press: root.save_graph()
 
 			Button:
 				id: bt_update_map

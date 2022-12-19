@@ -18,6 +18,7 @@ import matplotlib as mpl
 from matplotlib.figure import Figure
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import pyaudio
+from datetime import datetime
 
 plt.style.use('bmh')
 p = pyaudio.PyAudio()
@@ -91,6 +92,7 @@ class MainWindow(BoxLayout):
         self.ids.bt_screen_map.disabled = False
 
         self.ids.bt_update_graph.disabled = True
+        self.ids.bt_save_graph.disabled = True
         self.ids.bt_update_map.disabled = True
 
         self.ids.label_page.text = "SETTING SCREEN"
@@ -107,6 +109,7 @@ class MainWindow(BoxLayout):
         self.ids.bt_screen_map.disabled = False
 
         self.ids.bt_update_graph.disabled = False
+        self.ids.bt_save_graph.disabled = False
         self.ids.bt_update_map.disabled = True
 
         self.ids.label_page.text = "GRAPH SCREEN"
@@ -124,6 +127,7 @@ class MainWindow(BoxLayout):
         self.ids.bt_screen_map.disabled = True
 
         self.ids.bt_update_graph.disabled = True
+        self.ids.bt_save_graph.disabled = True
         self.ids.bt_update_map.disabled = False
 
         self.ids.label_page.text = "MAP SCREEN"
@@ -397,22 +401,10 @@ class MainWindow(BoxLayout):
     def request_graph(self):
         self.update_graph()
 
-        # if(self.flag_graph):
-        #     Clock.unschedule(self.update_enco)
-        #     self.ids.bt_screen_setting.disabled = False
-        #     self.ids.bt_screen_map.disabled = False
-
-        #     self.ids.bt_update_graph.text = "UPDATE GRAPH"
-        #     self.flag_graph = False
-
-        # else:
-        #     Clock.schedule_interval(self.update_enco, 0.1)
-        #     self.ids.bt_screen_setting.disabled = True
-        #     self.ids.bt_screen_map.disabled = True
-
-        #     self.ids.bt_update_graph.text = "UPDATING GRAPH..."
-        #     self.flag_graph = True
-
+    def save_graph(self):
+        now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S.jpg")
+        self.fig2.savefig(now)
+        print("sucessfull save graph")
 
     def checkbox_click(self, instance, value, waves):
         if value == True:
