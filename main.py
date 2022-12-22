@@ -23,9 +23,9 @@ from datetime import datetime
 plt.style.use('bmh')
 p = pyaudio.PyAudio()
 
-SAMPLESIZE = 220 # number of data points to read at a time default 4096
-SAMPLERATE = 220000 # time resolution of the recording self.device (Hz) 44100
-TIMESAMPLE = 1 #in second
+SAMPLESIZE = 1000 # number of data points to read at a time default 4096
+SAMPLERATE = 100000 # time resolution of the recording self.device (Hz) 44100
+TIMESAMPLE = 0.01 #in second
 DISTANCE = 100
 
 # stream=p.open(format=pyaudio.paFloat32,channels=1,rate=SAMPLERATE,input=True,frames_per_buffer=SAMPLESIZE)
@@ -47,12 +47,14 @@ kv = Builder.load_file('main.kv')
 # Builder.load_file('main.kv')
 #Define our different screens
 class MainWindow(BoxLayout):
-    checks = []
+    checks_waveform = []
+    checks_method = []
     flag_signal = False
     flag_graph = False
     flag_map = False
 
     dt_waveform = ""
+    dt_method = ""
     lon = 107.6213
     lat = -6.8775
     zoom = 19
@@ -96,6 +98,8 @@ class MainWindow(BoxLayout):
         self.ids.bt_update_map.disabled = True
 
         self.ids.label_page.text = "SETTING SCREEN"
+        Clock.unschedule(self.update_graph_odometry)
+        Clock.unschedule(self.update_graph_time)
 
     def graph_screen(self):
         self.ids.layout_graph_carrier.clear_widgets()
@@ -108,11 +112,26 @@ class MainWindow(BoxLayout):
         self.ids.bt_screen_graph.disabled = True
         self.ids.bt_screen_map.disabled = False
 
-        self.ids.bt_update_graph.disabled = False
+        
         self.ids.bt_save_graph.disabled = False
         self.ids.bt_update_map.disabled = True
 
         self.ids.label_page.text = "GRAPH SCREEN"
+
+        if("ODOMETRY" in self.dt_method):
+            self.ids.bt_update_graph.disabled = True
+            Clock.schedule_interval(self.update_graph_odometry, 0.2)
+
+        elif("TIME_BASED" in self.dt_method):
+            self.ids.bt_update_graph.disabled = True
+            Clock.schedule_interval(self.update_graph_time, 0.2)
+
+        elif("MANUAL" in self.dt_method):
+            self.ids.bt_update_graph.disabled = False
+
+        else:
+            self.ids.bt_update_graph.disabled = False
+
 
     def map_screen(self):
         self.ids.layout_graph_carrier.clear_widgets()
@@ -131,6 +150,8 @@ class MainWindow(BoxLayout):
         self.ids.bt_update_map.disabled = False
 
         self.ids.label_page.text = "MAP SCREEN"
+        Clock.unschedule(self.update_graph_odometry)
+        Clock.unschedule(self.update_graph_time)
 
     def refresh(self):
         ports = serial.tools.list_ports.comports()
@@ -145,7 +166,7 @@ class MainWindow(BoxLayout):
             self.ids.bt_refresh.disabled = True
             self.ids.bt_send_signal.disabled = False
             self.ids.bt_open_close_serial.text = "CLOSE COMMUNICATION"
-            Clock.schedule_interval(self.update_data, 0.1)
+            Clock.schedule_interval(self.update_data, 0.5)
             Clock.schedule_interval(self.update_enco, 1)
             print("success open communication")
             self.ids.label_notif.text = "success open communication"
@@ -213,6 +234,15 @@ class MainWindow(BoxLayout):
             self.ids.label_notif.text = "error reading data"
             self.ids.label_notif.color = 1,0,0
 
+    def update_graph_odometry(self, interval):
+        if (self.dt_distance == self.last_distance):
+            pass
+        else:
+            self.update_graph()
+
+    def update_graph_time(self, interval):
+        self.update_graph()
+
     def update_graph(self):
         stream = p.open(format=pyaudio.paFloat32,
                         channels = 1,
@@ -221,7 +251,6 @@ class MainWindow(BoxLayout):
                         input = True)
         
         x = np.linspace(0, SAMPLESIZE-1, SAMPLESIZE)
-
         # for i in range(0, int(SAMPLERATE / SAMPLESIZE * TIMESAMPLE)):self.dt_interval
         # for i in range(0, int(SAMPLERATE / SAMPLESIZE * self.dt_interval / 5)):
         for i in range(0, int(SAMPLERATE / SAMPLESIZE * TIMESAMPLE)):
@@ -307,7 +336,7 @@ class MainWindow(BoxLayout):
             self.ids.bt_refresh.disabled = True
             self.ids.bt_send_signal.disabled = False
             self.ids.bt_open_close_serial.text = "CLOSE COMMUNICATION"
-            Clock.schedule_interval(self.update_data, 0.1)
+            Clock.schedule_interval(self.update_data, 0.5)
             Clock.schedule_interval(self.update_enco, 1)
             print("communication port is opened")
             self.ids.label_notif.text = "communication port is opened"
@@ -406,21 +435,40 @@ class MainWindow(BoxLayout):
         self.fig2.savefig(now)
         print("sucessfull save graph")
 
-    def checkbox_click(self, instance, value, waves):
+    def exec_shutdown(self):
+        os.system("shutdown /s /t 1")
+
+    def checkbox_waveform_click(self, instance, value, waves):
         if value == True:
-            self.checks.append(waves)
+            self.checks_waveform.append(waves)
             waveforms = ''
-            for x in self.checks:
+            for x in self.checks_waveform:
                 waveforms = f'{waveforms} {x}'
             self.ids.output_label.text = f'{waveforms} WAVEFORM CHOSEN'
         else:
-            self.checks.remove(waves)
+            self.checks_waveform.remove(waves)
             waveforms = ''
-            for x in self.checks:
+            for x in self.checks_waveform:
                 waveforms = f'{waveforms} {x}'
             self.ids.output_label.text = ''
         
         self.dt_waveform = waveforms
+
+    def checkbox_method_click(self, instance, value, meths):
+        if value == True:
+            self.checks_method.append(meths)
+            methods = ''
+            for x in self.checks_method:
+                methods = f'{methods} {x}'
+            self.ids.output_label_method.text = f'{methods} METHOD CHOSEN'
+        else:
+            self.checks_method.remove(meths)
+            methods = ''
+            for x in self.checks_method:
+                methods = f'{methods} {x}'
+            self.ids.output_label_method.text = ''
+        
+        self.dt_method = methods
 
 
 class GPRApp(App):

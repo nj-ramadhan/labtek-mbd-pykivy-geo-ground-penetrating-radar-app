@@ -128,7 +128,7 @@
 							color: 0.5, 0, 0
 							size_hint_x: None
 							width: 300
-							on_active: root.checkbox_click(self, self.active, "TRIANGLE")
+							on_active: root.checkbox_waveform_click(self, self.active, "TRIANGLE")
 
 						Label:
 							text: "TRIANGLE"
@@ -143,7 +143,7 @@
 							color: 0.5, 0, 0
 							size_hint_x: None
 							width: 300
-							on_active: root.checkbox_click(self, self.active, "SQUARE")
+							on_active: root.checkbox_waveform_click(self, self.active, "SQUARE")
 							
 						Label:
 							text: "SQUARE"
@@ -158,7 +158,7 @@
 							color: 0.5, 0, 0
 							size_hint_x: None
 							width: 300
-							on_active: root.checkbox_click(self, self.active, "SAWTOOTH")		
+							on_active: root.checkbox_waveform_click(self, self.active, "SAWTOOTH")		
 
 						Label:
 							text: "SAWTOOTH"
@@ -267,7 +267,86 @@
 							font_size:36
 							color: 0, 0, 0
 							bold: True
-	
+
+				BoxLayout:
+					orientation: "vertical"
+					canvas.before:
+						Color:
+							rgba: 0.5, 0, 0, 1
+						Line:
+							width: 2
+							rectangle: self.x, self.y, self.width, self.height
+
+					Label:
+						text: "MEASUREMENT METHOD"
+						bold: True
+						font_size: 44
+						color: 0, 0, 0
+						size_hint_y: 0.25
+
+					Label:
+						text: ""
+						size_hint_y: 0.1
+
+					GridLayout:
+						cols:2
+						row_force_default: True
+						row_default_height: 120
+
+						CheckBox:
+							group: "method"
+							color: 0.5, 0, 0
+							size_hint_x: None
+							width: 300
+							on_active: root.checkbox_method_click(self, self.active, "ODOMETRY")
+
+						Label:
+							text: "ODOMETRY"
+							text_size: self.size
+							halign: "left"
+							valign: "middle"
+							font_size:44
+							color: 0, 0, 0
+
+						CheckBox:
+							group: "method"
+							color: 0.5, 0, 0
+							size_hint_x: None
+							width: 300
+							on_active: root.checkbox_method_click(self, self.active, "TIME_BASED")
+							
+						Label:
+							text: "TIME_BASED"
+							text_size: self.size
+							halign: "left"
+							valign: "middle"
+							font_size:44
+							color: 0, 0, 0
+
+						CheckBox:
+							group: "method"
+							color: 0.5, 0, 0
+							size_hint_x: None
+							width: 300
+							on_active: root.checkbox_method_click(self, self.active, "MANUAL")		
+
+						Label:
+							text: "MANUAL"
+							text_size: self.size
+							halign: "left"
+							valign: "middle"
+							font_size:44
+							color: 0, 0, 0
+
+					Label:
+						id: output_label_method
+						text: ""
+						font_size:36
+						bold: True
+						color: 0, 0, 0
+						size_hint_y: 0.7
+
+
 			# graph carrier layout
 			BoxLayout:
 				id: layout_graph_carrier
@@ -437,6 +516,12 @@
 				text: "MAP"
 				font_size: 44
 				on_press: root.map_screen()
+
+			Button:
+				id: bt_shutdown
+				text: "SHUTDOWN"
+				font_size: 44
+				on_press: root.exec_shutdown()
 
 		#support
 		Label:
