@@ -18,7 +18,7 @@ from matplotlib.figure import Figure
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import pyaudio
 from datetime import datetime
-#from segpy.writer import write_segy
+from segpy.writer import write_segy
 
 plt.style.use('bmh')
 p = pyaudio.PyAudio()
@@ -485,7 +485,7 @@ class MainWindow(BoxLayout):
 
     def save_data(self):
         try:
-            now = datetime.now().strftime("Desktop\\%d_%m_%Y_%H_%M_%S.sgy")
+            now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S.sgy")
             with open(now,"wb") as f:
                 #np.savetxt(f, self.data_colormap, fmt="%f")
                 write_segy(f, self.data_colormap, endian=">")
@@ -499,7 +499,7 @@ class MainWindow(BoxLayout):
 
     def save_graph(self):
         try:
-            now = datetime.now().strftime("Desktop\\%d_%m_%Y_%H_%M_%S.jpg")
+            now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S.jpg")
             self.fig2.savefig(now)
             print("sucessfully save graph")
             self.ids.label_notif.text = "sucessfully save graph"
