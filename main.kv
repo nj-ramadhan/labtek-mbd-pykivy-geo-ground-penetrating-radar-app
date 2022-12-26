@@ -3,6 +3,7 @@
 #:import MapView kivy.garden.mapview.MapView
 #:import MapMarkerPopup kivy.garden.mapview.MapMarkerPopup
 
+
 <MainWindow>:
     BoxLayout:
         orientation: "vertical"
@@ -24,7 +25,7 @@
 
                 Label:
                     id: subtitle            
-                    text: "GROUND PENETRATION RADAR (GPR)"
+                    text: "GROUND PENETRATING RADAR (GPR)"
                     bold: True
                     font_size: 80
                     size_hint_y: 2
@@ -126,8 +127,11 @@
 						CheckBox:
 							group: "waveform"
 							color: 0.5, 0, 0
-							size_hint_x: None
+							# size_hint_x: None
+							size_hint: None, None
+							size: 96, 96
 							width: 300
+							# check_size:200
 							on_active: root.checkbox_waveform_click(self, self.active, "TRIANGLE")
 
 						Label:
@@ -214,8 +218,8 @@
 
 						Slider:
 							id: slider_max
-							min: 190
-							max: 210
+							min: 160
+							max: 360
 							step: 1
 							value: 210
 							orientation: 'vertical'
@@ -313,10 +317,10 @@
 							color: 0.5, 0, 0
 							size_hint_x: None
 							width: 300
-							on_active: root.checkbox_method_click(self, self.active, "TIME_BASED")
+							on_active: root.checkbox_method_click(self, self.active, "CONTINUOUS ")
 							
 						Label:
-							text: "TIME_BASED"
+							text: "CONTINUOUS"
 							text_size: self.size
 							halign: "left"
 							valign: "middle"
@@ -375,19 +379,19 @@
 				Slider:
 					id: slider_distance
 					min: 0
-					max: 99000
-					step: 10
+					max: 99
+					step: 0.001
 					orientation: 'horizontal'
-					size_hint_x: 0.62
+					size_hint_x: 0.72
 					padding:150
 
 				Label:
 					id: txt_slider_distance
-					text: "DISTANCE " + str(slider_distance.value) + " mm" 
+					text: "DISTANCE " + str(slider_distance.value) + " m" 
 					font_size:36
 					color: 0, 0, 0
 					bold: True
-					size_hint_x: 0.38
+					size_hint_x: 0.28
 
 		# map layout
 		BoxLayout:
@@ -479,6 +483,13 @@
 				on_press: root.request_graph()
 
 			Button:
+				id: bt_save_data
+				text: "SAVE DATA"
+				font_size: 44
+				disabled: True
+				on_press: root.save_data()
+
+			Button:
 				id: bt_save_graph
 				text: "SAVE GRAPH"
 				font_size: 44
@@ -516,6 +527,12 @@
 				text: "MAP"
 				font_size: 44
 				on_press: root.map_screen()
+
+			Button:
+				id: bt_quit
+				text: "EXIT"
+				font_size: 44
+				on_press: root.exec_exit()
 
 			Button:
 				id: bt_shutdown

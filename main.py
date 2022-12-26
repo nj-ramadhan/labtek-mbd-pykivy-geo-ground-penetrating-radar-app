@@ -1,4 +1,3 @@
-from tkinter import Wm
 import serial, serial.tools.list_ports
 import numpy as np
 import json
@@ -19,22 +18,17 @@ from matplotlib.figure import Figure
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import pyaudio
 from datetime import datetime
+#from segpy.writer import write_segy
 
 plt.style.use('bmh')
 p = pyaudio.PyAudio()
 
 SAMPLESIZE = 1000 # number of data points to read at a time default 4096
-SAMPLERATE = 100000 # time resolution of the recording self.device (Hz) 44100
+SAMPLERATE = 200000 # time resolution of the recording self.device (Hz) 44100
 TIMESAMPLE = 0.01 #in second
-DISTANCE = 100
+DISTANCE = 10
 
 # stream=p.open(format=pyaudio.paFloat32,channels=1,rate=SAMPLERATE,input=True,frames_per_buffer=SAMPLESIZE)
-
-data_signal = np.zeros(50)
-# print(data_signal)
-data_colormap = np.zeros((SAMPLESIZE, DISTANCE))
-# print(data_heatmap)
-data_adc = np.zeros(20)
 
 Window.clearcolor = (.9, .9, .9, 1)
 Window.fullscreen = 'auto'
@@ -52,17 +46,24 @@ class MainWindow(BoxLayout):
     flag_signal = False
     flag_graph = False
     flag_map = False
+    flag_move = False
 
     dt_waveform = ""
     dt_method = ""
     lon = 107.6213
     lat = -6.8775
     zoom = 19
-    # dt_colormap = np.random.randn(5000, 3000)
+    dt_slider_distance = 0
     dt_distance = 0
     last_distance = 0
     dt_delay = 0
     dt_interval = 10
+    min_graph = -0.1
+    max_graph = 0.1
+
+    data_signal = np.zeros(50)
+    data_colormap = np.zeros((SAMPLESIZE, DISTANCE))
+    data_adc = np.zeros(20)
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -70,6 +71,7 @@ class MainWindow(BoxLayout):
         self.fig1, self.ax = plt.subplots()
         # self.fig2, (self.ax1, self.ax2, self.ax3) = plt.subplots(nrows=1, ncols=3, gridspec_kw={'width_ratios': [10, 1, 1]})
         self.fig2, (self.ax1, self.ax2) = plt.subplots(nrows=1, ncols=2, gridspec_kw={'width_ratios': [10, 2]})
+        self.ids.slider_distance.max = DISTANCE
         self.setting_screen()
 
     def hide_widget(self, wid, dohide=True):
@@ -94,10 +96,12 @@ class MainWindow(BoxLayout):
         self.ids.bt_screen_map.disabled = False
 
         self.ids.bt_update_graph.disabled = True
+        self.ids.bt_save_data.disabled = True
         self.ids.bt_save_graph.disabled = True
         self.ids.bt_update_map.disabled = True
 
         self.ids.label_page.text = "SETTING SCREEN"
+        Clock.unschedule(self.update_enco)
         Clock.unschedule(self.update_graph_odometry)
         Clock.unschedule(self.update_graph_time)
 
@@ -112,7 +116,7 @@ class MainWindow(BoxLayout):
         self.ids.bt_screen_graph.disabled = True
         self.ids.bt_screen_map.disabled = False
 
-        
+        self.ids.bt_save_data.disabled = False
         self.ids.bt_save_graph.disabled = False
         self.ids.bt_update_map.disabled = True
 
@@ -120,11 +124,11 @@ class MainWindow(BoxLayout):
 
         if("ODOMETRY" in self.dt_method):
             self.ids.bt_update_graph.disabled = True
-            Clock.schedule_interval(self.update_graph_odometry, 0.2)
+            Clock.schedule_interval(self.update_graph_odometry, 0.5)
 
-        elif("TIME_BASED" in self.dt_method):
+        elif("CONTINUOUS" in self.dt_method):
             self.ids.bt_update_graph.disabled = True
-            Clock.schedule_interval(self.update_graph_time, 0.2)
+            Clock.schedule_interval(self.update_graph_time, 0.5)
 
         elif("MANUAL" in self.dt_method):
             self.ids.bt_update_graph.disabled = False
@@ -146,10 +150,12 @@ class MainWindow(BoxLayout):
         self.ids.bt_screen_map.disabled = True
 
         self.ids.bt_update_graph.disabled = True
+        self.ids.bt_save_data.disabled = True
         self.ids.bt_save_graph.disabled = True
         self.ids.bt_update_map.disabled = False
 
         self.ids.label_page.text = "MAP SCREEN"
+        Clock.unschedule(self.update_enco)
         Clock.unschedule(self.update_graph_odometry)
         Clock.unschedule(self.update_graph_time)
 
@@ -167,7 +173,6 @@ class MainWindow(BoxLayout):
             self.ids.bt_send_signal.disabled = False
             self.ids.bt_open_close_serial.text = "CLOSE COMMUNICATION"
             Clock.schedule_interval(self.update_data, 0.5)
-            Clock.schedule_interval(self.update_enco, 1)
             print("success open communication")
             self.ids.label_notif.text = "success open communication"
             self.ids.label_notif.color = 0,0,1
@@ -177,7 +182,7 @@ class MainWindow(BoxLayout):
             self.ids.label_notif.color = 1,0,0
 
     def update_data(self, interval):
-        # print("read")
+        print("read")
         try:
             if self.device.in_waiting > 0:
                 serialString = self.device.readline()
@@ -192,12 +197,16 @@ class MainWindow(BoxLayout):
                     print("get encoder")
 
                     self.dt_slider_distance = data_json["Pos"]
-                    self.ids.slider_distance.value = int(self.dt_slider_distance)
-                    self.dt_distance = int(self.ids.slider_distance.value / 1000)
+                    self.ids.slider_distance.value = float(self.dt_slider_distance / 1000)
+                    self.dt_distance = int(self.dt_slider_distance / 1000)
                     
                     print("success update encoder data")
                     self.ids.label_notif.text = "success update encoder data"
                     self.ids.label_notif.color = 0,0,1
+                    
+                    print("last:"+str(self.last_distance)+" real:"+str(self.dt_distance))
+                    if(self.last_distance!=self.dt_distance):
+                        self.flag_move = True
 
                     self.last_distance = self.dt_distance
 
@@ -235,13 +244,18 @@ class MainWindow(BoxLayout):
             self.ids.label_notif.color = 1,0,0
 
     def update_graph_odometry(self, interval):
-        if (self.dt_distance == self.last_distance):
-            pass
-        else:
+        Clock.schedule_interval(self.update_enco, 0.5)
+        if(self.flag_move):
             self.update_graph()
+            self.flag_move = False
 
     def update_graph_time(self, interval):
         self.update_graph()
+        self.dt_slider_distance += 1000
+        self.ids.slider_distance.value = float(self.dt_slider_distance / 1000)
+        self.dt_distance = int(self.dt_slider_distance / 1000)
+        
+        
 
     def update_graph(self):
         stream = p.open(format=pyaudio.paFloat32,
@@ -253,36 +267,65 @@ class MainWindow(BoxLayout):
         x = np.linspace(0, SAMPLESIZE-1, SAMPLESIZE)
         # for i in range(0, int(SAMPLERATE / SAMPLESIZE * TIMESAMPLE)):self.dt_interval
         # for i in range(0, int(SAMPLERATE / SAMPLESIZE * self.dt_interval / 5)):
+
         for i in range(0, int(SAMPLERATE / SAMPLESIZE * TIMESAMPLE)):
-            data_signal = np.frombuffer(stream.read(SAMPLESIZE), dtype=np.float32)
+            self.data_signal = np.frombuffer(stream.read(SAMPLESIZE), dtype=np.float32)
+            # self.data_signal_stereo = np.frombuffer(stream.read(SAMPLESIZE), dtype=np.float32)
+        # print(self.data_signal_stereo.shape)
+        # temp_data_signal_stereo = self.data_signal_stereo
+        # temp_data_signal_stereo.resize([SAMPLESIZE, 2])
+        # print(temp_data_signal_stereo.shape)
+        # self.data_signal = temp_data_signal_stereo[:, 0]
+        # self.data_signal.flatten
+        # self.data_signal_2 = temp_data_signal_stereo[:, 1]
+        # print(self.data_signal.shape)
           
         x_spec = np.fft.fftfreq(SAMPLESIZE, d = 1.0 / SAMPLERATE)
-        y_temp = np.fft.fft(-data_signal[0:SAMPLESIZE])
+        y_temp = np.fft.fft(-self.data_signal[0:SAMPLESIZE])
         y_spec = np.asarray([np.sqrt(c.real ** 2 + c.imag ** 2) for c in y_temp])
 
-        self.dt_distance = int(self.ids.slider_distance.value / 1000)
+        self.dt_distance = int(self.dt_slider_distance / 1000)
 
-        data_colormap[: , self.dt_distance] = data_signal
+        filtered_signal = self.data_signal.copy()
+        filtered_signal[(filtered_signal > self.max_graph)] = self.max_graph
+        
+        #np.where(self.data_signal > 0.01, 0.0 ,self.data_signal)
+        #np.where(self.data_signal < -0.01, 0.0 ,self.data_signal)
+        # print(self.data_colormap.shape)
+        #print(self.data_colormap)
+        #print(self.data_signal)
+        
+        #self.data_signal = filtered_signal
+        if(self.dt_distance >= DISTANCE):
+            temp_data_signal = self.data_signal
+            temp_data_signal.resize([SAMPLESIZE, 1])
+            self.data_colormap = np.concatenate([self.data_colormap, temp_data_signal], axis=1)
+            #np.dstack((self.data_colormap, self.data_signal))
+            self.ids.slider_distance.max += 1
+            
+        else:
+            self.data_colormap[: , self.dt_distance] = self.data_signal
 
         stream.stop_stream()
         stream.close()
 
-        self.fig2, (self.ax1, self.ax2) = plt.subplots(nrows=1, ncols=2, gridspec_kw={'width_ratios': [10, 2]})
-        self.fig2.tight_layout(pad=1.0)
+        self.fig2, (self.ax1, self.ax2) = plt.subplots(nrows=1, ncols=2, gridspec_kw={'width_ratios': [10, 1]})
+        self.fig2.tight_layout()
         self.fig2.set_facecolor((.9,.9,.9))
        
         self.ax1.axis([0,DISTANCE, SAMPLESIZE,0])
-        self.ax1.set_xlabel('distance (m)', fontsize=20)
-        self.ax1.set_ylabel('depth (m)', fontsize=20)
+        self.ax1.set_xlabel('distance (m)', fontsize=25)
+        self.ax1.set_ylabel('depth (m)', fontsize=25)
+        self.ax1.set_xlim(0, self.ids.slider_distance.max)
         self.ax1.grid(False)
 
-        clrmesh = self.ax1.pcolor(data_colormap, cmap='seismic', vmin=-0.1, vmax=0.1)
+        clrmesh = self.ax1.pcolor(self.data_colormap, cmap='seismic', vmin=self.min_graph, vmax=self.max_graph)
         self.fig2.colorbar(clrmesh, ax=self.ax1, format='%f')
 
-        self.ax2.axis([-0.1, 0.1, SAMPLESIZE-1, 0])
-        self.ax2.set_xlabel('amplitude (dB)', fontsize=20)
-        self.ax2.set_ylabel('time (sample)', fontsize=20)
-        self.ax2.plot(data_signal, x, lw=1)
+        self.ax2.axis([self.min_graph, self.max_graph, SAMPLESIZE-1, 0])
+        self.ax2.set_xlabel('amplitude (dB)', fontsize=25)
+        self.ax2.set_ylabel('time (sample)', fontsize=25)
+        self.ax2.plot(self.data_signal, x, lw=1)
 
         # self.ax3.axis([0,25, SAMPLERATE/32, 0])
         # self.ax3.set_xlabel('amplitude (dB)', fontsize=20)
@@ -299,10 +342,16 @@ class MainWindow(BoxLayout):
         print(str_send)
 
     def update_map(self, interval):
-        data_json = json.dumps({"type":"GPS"})
-        str_send = data_json + "\n"
-        self.device.write(str_send.encode())        
-        print(str_send)
+        try:
+            data_json = json.dumps({"type":"GPS"})
+            str_send = data_json + "\n"
+            self.device.write(str_send.encode())        
+            print(str_send)
+        except:
+            print("error updating map")
+            self.ids.label_notif.text = "error updating map"
+            self.ids.label_notif.color = 1,0,0
+            
 
     def map_mark(self):
         self.lon = float(self.ids.txt_lon.text)
@@ -326,7 +375,6 @@ class MainWindow(BoxLayout):
             self.ids.bt_send_signal.disabled = True            
             self.ids.bt_open_close_serial.text = "OPEN COMMUNICATION"
             Clock.unschedule(self.update_data)
-            Clock.unschedule(self.update_enco)
             print("communication port is closed")
             self.ids.label_notif.text = "communication port is closed"
             self.ids.label_notif.color = 0,0,1
@@ -337,7 +385,6 @@ class MainWindow(BoxLayout):
             self.ids.bt_send_signal.disabled = False
             self.ids.bt_open_close_serial.text = "CLOSE COMMUNICATION"
             Clock.schedule_interval(self.update_data, 0.5)
-            Clock.schedule_interval(self.update_enco, 1)
             print("communication port is opened")
             self.ids.label_notif.text = "communication port is opened"
             self.ids.label_notif.color = 0,0,1
@@ -403,8 +450,11 @@ class MainWindow(BoxLayout):
                 self.ids.label_notif.color = 1,0,0
 
         self.fig1, self.ax = plt.subplots()
+        self.fig1.tight_layout()
         self.fig1.set_facecolor((.9,.9,.9))
         self.ax.set_facecolor((.9,.9,.9))
+        self.ax.set_xlabel('time (ms)', fontsize=25)
+        self.ax.set_ylabel('amplitude (Hz)', fontsize=25)
         self.ax.plot(x_axis, y_axis)
 
         self.ids.layout_graph_carrier.clear_widgets()
@@ -429,11 +479,38 @@ class MainWindow(BoxLayout):
             
     def request_graph(self):
         self.update_graph()
+        self.dt_slider_distance += 1000
+        self.ids.slider_distance.value = float(self.dt_slider_distance / 1000)
+        self.dt_distance = int(self.dt_slider_distance / 1000)
+
+    def save_data(self):
+        try:
+            now = datetime.now().strftime("Desktop\\%d_%m_%Y_%H_%M_%S.sgy")
+            with open(now,"wb") as f:
+                #np.savetxt(f, self.data_colormap, fmt="%f")
+                write_segy(f, self.data_colormap, endian=">")
+            print("sucessfully save data")
+            self.ids.label_notif.text = "sucessfully save data"
+            self.ids.label_notif.color = 0,0,1
+        except:
+            print("error saving data")
+            self.ids.label_notif.text = "error saving data"
+            self.ids.label_notif.color = 1,0,0
 
     def save_graph(self):
-        now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S.jpg")
-        self.fig2.savefig(now)
-        print("sucessfull save graph")
+        try:
+            now = datetime.now().strftime("Desktop\\%d_%m_%Y_%H_%M_%S.jpg")
+            self.fig2.savefig(now)
+            print("sucessfully save graph")
+            self.ids.label_notif.text = "sucessfully save graph"
+            self.ids.label_notif.color = 0,0,1
+        except:
+            print("error saving graph")
+            self.ids.label_notif.text = "error saving graph"
+            self.ids.label_notif.color = 1,0,0
+
+    def exec_exit(self):
+        quit()
 
     def exec_shutdown(self):
         os.system("shutdown /s /t 1")
