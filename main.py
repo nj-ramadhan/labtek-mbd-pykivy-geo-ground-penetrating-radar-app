@@ -15,6 +15,7 @@ from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.figure import Figure
+import matplotlib.colors as mcolors
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import pyaudio
 from datetime import datetime
@@ -58,7 +59,7 @@ class MainWindow(BoxLayout):
     last_distance = 0
     dt_delay = 0
     dt_interval = 10
-    min_graph = -0.1
+    min_graph = 0.0
     max_graph = 0.1
 
     data_signal = np.zeros(50)
@@ -124,11 +125,11 @@ class MainWindow(BoxLayout):
 
         if("ODOMETRY" in self.dt_method):
             self.ids.bt_update_graph.disabled = True
-            Clock.schedule_interval(self.update_graph_odometry, 0.5)
+            Clock.schedule_interval(self.update_graph_odometry, 1)
 
         elif("CONTINUOUS" in self.dt_method):
             self.ids.bt_update_graph.disabled = True
-            Clock.schedule_interval(self.update_graph_time, 0.5)
+            Clock.schedule_interval(self.update_graph_time, 2)
 
         elif("MANUAL" in self.dt_method):
             self.ids.bt_update_graph.disabled = False
@@ -172,7 +173,7 @@ class MainWindow(BoxLayout):
             self.ids.bt_refresh.disabled = True
             self.ids.bt_send_signal.disabled = False
             self.ids.bt_open_close_serial.text = "CLOSE COMMUNICATION"
-            Clock.schedule_interval(self.update_data, 0.5)
+            Clock.schedule_interval(self.update_data, 1)
             print("success open communication")
             self.ids.label_notif.text = "success open communication"
             self.ids.label_notif.color = 0,0,1
@@ -244,7 +245,7 @@ class MainWindow(BoxLayout):
             self.ids.label_notif.color = 1,0,0
 
     def update_graph_odometry(self, interval):
-        Clock.schedule_interval(self.update_enco, 0.5)
+        Clock.schedule_interval(self.update_enco, 1)
         if(self.flag_move):
             self.update_graph()
             self.flag_move = False
@@ -297,14 +298,16 @@ class MainWindow(BoxLayout):
         
         #self.data_signal = filtered_signal
         if(self.dt_distance >= DISTANCE):
-            temp_data_signal = self.data_signal
+            # temp_data_signal = self.data_signal
+            temp_data_signal = y_spec
             temp_data_signal.resize([SAMPLESIZE, 1])
             self.data_colormap = np.concatenate([self.data_colormap, temp_data_signal], axis=1)
             #np.dstack((self.data_colormap, self.data_signal))
             self.ids.slider_distance.max += 1
             
         else:
-            self.data_colormap[: , self.dt_distance] = self.data_signal
+            # self.data_colormap[: , self.dt_distance] = self.data_signal
+            self.data_colormap[: , self.dt_distance] = y_spec
 
         stream.stop_stream()
         stream.close()
@@ -319,27 +322,36 @@ class MainWindow(BoxLayout):
         self.ax1.set_xlim(0, self.ids.slider_distance.max)
         self.ax1.grid(False)
 
-        clrmesh = self.ax1.pcolor(self.data_colormap, cmap='seismic', vmin=self.min_graph, vmax=self.max_graph)
+        # cgrid = np.linspace(self.min_graph, self.min_graph, 10)
+        # cmap, norm = mcolors.from_levels_and_colors(cgrid,['blue', 'green', 'yellow', 'red'])
+        
+        clrmesh = self.ax1.pcolor(self.data_colormap, cmap='turbo', vmin=self.min_graph, vmax=self.max_graph)
+        # clrmesh = self.ax1.pcolor(self.data_colormap, cmap=cmap, norm=norm)
         self.fig2.colorbar(clrmesh, ax=self.ax1, format='%f')
 
-        self.ax2.axis([self.min_graph, self.max_graph, SAMPLESIZE-1, 0])
-        self.ax2.set_xlabel('amplitude (dB)', fontsize=25)
-        self.ax2.set_ylabel('time (sample)', fontsize=25)
-        self.ax2.plot(self.data_signal, x, lw=1)
+        # self.ax2.axis([self.min_graph, self.max_graph, SAMPLESIZE-1, 0])
+        # self.ax2.set_xlabel('amplitude (dB)', fontsize=25)
+        # self.ax2.set_ylabel('frequency (Hz)', fontsize=25)
+        # self.ax2.plot(self.data_signal, x, lw=1)
 
-        # self.ax3.axis([0,25, SAMPLERATE/32, 0])
-        # self.ax3.set_xlabel('amplitude (dB)', fontsize=20)
-        # self.ax3.set_ylabel('frequency (Hz)', fontsize=20)
-        # self.ax3.plot(y_spec, -x_spec, lw=1,marker= 'o', linestyle='-')
+        self.ax2.axis([0,25, SAMPLERATE/32, 0])
+        self.ax2.set_xlabel('amplitude (dB)', fontsize=20)
+        self.ax2.set_ylabel('frequency (Hz)', fontsize=20)
+        self.ax2.plot(y_spec, -x_spec, lw=1,marker= 'o', linestyle='-')
 
         self.ids.layout_graph_signal.clear_widgets()
         self.ids.layout_graph_signal.add_widget(FigureCanvasKivyAgg(self.fig2))
 
     def update_enco(self, interval):
-        data_json = json.dumps({"type":"ENCO"})
-        str_send = data_json + "\n"
-        self.device.write(str_send.encode())        
-        print(str_send)
+        try:
+            data_json = json.dumps({"type":"ENCO"})
+            str_send = data_json + "\n"
+            self.device.write(str_send.encode())        
+            print(str_send)
+        except:
+            print("error updating encoder")
+            self.ids.label_notif.text = "error updating encoder"
+            self.ids.label_notif.color = 1,0,0
 
     def update_map(self, interval):
         try:
@@ -384,7 +396,7 @@ class MainWindow(BoxLayout):
             self.ids.bt_refresh.disabled = True
             self.ids.bt_send_signal.disabled = False
             self.ids.bt_open_close_serial.text = "CLOSE COMMUNICATION"
-            Clock.schedule_interval(self.update_data, 0.5)
+            Clock.schedule_interval(self.update_data, 1)
             print("communication port is opened")
             self.ids.label_notif.text = "communication port is opened"
             self.ids.label_notif.color = 0,0,1

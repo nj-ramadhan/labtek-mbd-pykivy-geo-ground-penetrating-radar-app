@@ -451,6 +451,13 @@
 					text: "MARK"
 					font_size: 44
 					on_press: root.map_mark()
+			Label:
+				text: "Available in Paid Version"
+				font_size: 44
+				color: 1, 0, 0
+				size_hint_y: 0.1
+
+
 			MapView:
 				id: map_view
 				lon: root.lon
@@ -462,6 +469,7 @@
 					source: "asset/marker.png"
 					lon: root.lon
 					lat: root.lat
+
 		# button interfacing layout
 		BoxLayout:
 			orientation: "horizontal"
@@ -501,7 +509,8 @@
 				text: "UPDATE MAP"
 				font_size: 44
 				disabled: True
-				on_press: root.request_map()
+				background_color: 0.9, 0.9, 0
+				#on_press: root.request_map()
 
 		# button navigation layout
 		BoxLayout:
