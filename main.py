@@ -24,10 +24,10 @@ from segpy.writer import write_segy
 plt.style.use('bmh')
 p = pyaudio.PyAudio()
 
-SAMPLESIZE = 1000 # number of data points to read at a time default 4096
-SAMPLERATE = 200000 # time resolution of the recording self.device (Hz) 44100
+SAMPLESIZE = 500 # number of data points to read at a time default 4096
+SAMPLERATE = 100000 # time resolution of the recording self.device (Hz) 44100
 TIMESAMPLE = 0.01 #in second
-DISTANCE = 10
+DISTANCE = 50
 
 # stream=p.open(format=pyaudio.paFloat32,channels=1,rate=SAMPLERATE,input=True,frames_per_buffer=SAMPLESIZE)
 
@@ -59,8 +59,8 @@ class MainWindow(BoxLayout):
     last_distance = 0
     dt_delay = 0
     dt_interval = 10
-    min_graph = 0.0
-    max_graph = 0.1
+    min_graph = 0.00
+    max_graph = 2.0
 
     data_signal = np.zeros(50)
     data_colormap = np.zeros((SAMPLESIZE, DISTANCE))
@@ -316,9 +316,10 @@ class MainWindow(BoxLayout):
         self.fig2.tight_layout()
         self.fig2.set_facecolor((.9,.9,.9))
        
-        self.ax1.axis([0,DISTANCE, SAMPLESIZE,0])
-        self.ax1.set_xlabel('distance (m)', fontsize=25)
-        self.ax1.set_ylabel('depth (m)', fontsize=25)
+        self.ax1.axis([0,DISTANCE, SAMPLESIZE/2,0])
+        #self.ax1.axis([0,DISTANCE, SAMPLERATE/16,0])
+        self.ax1.set_xlabel('distance (m)', fontsize=20)
+        self.ax1.set_ylabel('depth (m)', fontsize=20)
         self.ax1.set_xlim(0, self.ids.slider_distance.max)
         self.ax1.grid(False)
 
@@ -334,8 +335,8 @@ class MainWindow(BoxLayout):
         # self.ax2.set_ylabel('frequency (Hz)', fontsize=25)
         # self.ax2.plot(self.data_signal, x, lw=1)
 
-        self.ax2.axis([0,25, SAMPLERATE/32, 0])
-        self.ax2.set_xlabel('amplitude (dB)', fontsize=20)
+        self.ax2.axis([self.min_graph, self.max_graph, SAMPLERATE/2, 0])
+        self.ax2.set_xlabel('amplitude', fontsize=20)
         self.ax2.set_ylabel('frequency (Hz)', fontsize=20)
         self.ax2.plot(y_spec, -x_spec, lw=1,marker= 'o', linestyle='-')
 
