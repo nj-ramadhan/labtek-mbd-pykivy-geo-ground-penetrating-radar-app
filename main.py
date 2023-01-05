@@ -24,7 +24,7 @@ from segpy.writer import write_segy
 plt.style.use('bmh')
 p = pyaudio.PyAudio()
 
-SAMPLESIZE = 200 # number of data points to read at a time default 4096
+SAMPLESIZE = 500 # number of data points to read at a time default 4096
 SAMPLERATE = 100000 # time resolution of the recording self.device (Hz) 44100
 TIMESAMPLE = 0.01 #in second
 DISTANCE = 50
@@ -59,8 +59,9 @@ class MainWindow(BoxLayout):
     last_distance = 0
     dt_delay = 0
     dt_interval = 10
-    min_graph = 0.00
-    max_graph = 1.50
+    min_graph = 0.0
+    max_graph = 0.04
+    gradien_gain = 0.002
 
     data_signal = np.zeros(50)
     data_colormap = np.zeros((SAMPLESIZE, DISTANCE))
@@ -292,7 +293,7 @@ class MainWindow(BoxLayout):
 
         
         for i in range (0, len(y_spec)):
-            y_spec[i] = y_spec[i] * (1 + (0.002 * i))
+            y_spec[i] = y_spec[i] * (1 + (self.gradien_gain * i))
         
         #np.where(self.data_signal > 0.01, 0.0 ,self.data_signal)
         #np.where(self.data_signal < -0.01, 0.0 ,self.data_signal)
@@ -320,7 +321,7 @@ class MainWindow(BoxLayout):
         self.fig2.tight_layout()
         self.fig2.set_facecolor((.9,.9,.9))
        
-        self.ax1.axis([0,DISTANCE, SAMPLESIZE/2,0])
+        self.ax1.axis([0,DISTANCE, SAMPLESIZE/4,0])
         #self.ax1.axis([0,DISTANCE, SAMPLERATE/16,0])
         self.ax1.set_xlabel('distance (m)', fontsize=20)
         self.ax1.set_ylabel('depth (m)', fontsize=20)
@@ -339,7 +340,7 @@ class MainWindow(BoxLayout):
         # self.ax2.set_ylabel('frequency (Hz)', fontsize=25)
         # self.ax2.plot(self.data_signal, x, lw=1)
 
-        self.ax2.axis([self.min_graph, self.max_graph, SAMPLERATE/2, 0])
+        self.ax2.axis([self.min_graph, self.max_graph, SAMPLERATE/4, 0])
         self.ax2.set_xlabel('amplitude', fontsize=20)
         self.ax2.set_ylabel('frequency (Hz)', fontsize=20)
         self.ax2.plot(y_spec, -x_spec, lw=1,marker= 'o', linestyle='-')
