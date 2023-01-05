@@ -24,7 +24,7 @@ from segpy.writer import write_segy
 plt.style.use('bmh')
 p = pyaudio.PyAudio()
 
-SAMPLESIZE = 500 # number of data points to read at a time default 4096
+SAMPLESIZE = 200 # number of data points to read at a time default 4096
 SAMPLERATE = 100000 # time resolution of the recording self.device (Hz) 44100
 TIMESAMPLE = 0.01 #in second
 DISTANCE = 50
@@ -60,7 +60,7 @@ class MainWindow(BoxLayout):
     dt_delay = 0
     dt_interval = 10
     min_graph = 0.00
-    max_graph = 2.0
+    max_graph = 1.50
 
     data_signal = np.zeros(50)
     data_colormap = np.zeros((SAMPLESIZE, DISTANCE))
@@ -289,6 +289,10 @@ class MainWindow(BoxLayout):
 
         filtered_signal = self.data_signal.copy()
         filtered_signal[(filtered_signal > self.max_graph)] = self.max_graph
+
+        
+        for i in range (0, len(y_spec)):
+            y_spec[i] = y_spec[i] * (1 + (0.002 * i))
         
         #np.where(self.data_signal > 0.01, 0.0 ,self.data_signal)
         #np.where(self.data_signal < -0.01, 0.0 ,self.data_signal)
