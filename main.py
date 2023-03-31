@@ -501,15 +501,52 @@ class MainWindow(BoxLayout):
         self.ids.slider_distance.value = float(self.dt_slider_distance / 1000)
         self.dt_distance = int(self.dt_slider_distance / 1000)
 
+    def report_segy(self, in_filename):
+        with open(in_filename, 'rb') as in_file:
+            # segy_reader = create_reader(in_file)
+            segy_reader = segy_reader(in_file)
+
+            print()
+            print("Filename:             ", segy_reader.filename)
+            print("SEG Y revision:       ", segy_reader.revision)
+            print("Number of traces:     ", segy_reader.num_traces())
+            print("Data format:          ",
+                segy_reader.data_sample_format_description)
+            print("Dimensionality:       ", segy_reader.dimensionality)
+
+            try:
+                print("Number of CDPs:       ", segy_reader.num_cdps())
+            except AttributeError:
+                pass
+
+            try:
+                print("Number of inlines:    ", segy_reader.num_inlines())
+                print("Number of crosslines: ", segy_reader.num_xlines())
+            except AttributeError:
+                pass
+
+            print("=== BEGIN TEXTUAL REEL HEADER ===")
+            for line in segy_reader.textual_reel_header:
+                print(line[3:])
+            print("=== END TEXTUAL REEL HEADER ===")
+            print()
+            print("=== BEGIN EXTENDED TEXTUAL HEADER ===")
+            print(segy_reader.extended_textual_header)
+            print("=== END EXTENDED TEXTUAL_HEADER ===")
+        
     def save_data(self):
         try:
             now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S.sgy")
+            
             with open(now,"wb") as f:
-                #np.savetxt(f, self.data_colormap, fmt="%f")
-                write_segy(f, self.data_colormap, endian=">")
+                np.savetxt(f, self.data_colormap, fmt="%f")
+                # write_segy(f, self.data_colormap, endian=">")
             print("sucessfully save data")
             self.ids.label_notif.text = "sucessfully save data"
             self.ids.label_notif.color = 0,0,1
+            # self.report_segy(now)
+
+            
         except:
             print("error saving data")
             self.ids.label_notif.text = "error saving data"
