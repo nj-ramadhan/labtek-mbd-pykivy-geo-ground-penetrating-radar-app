@@ -359,8 +359,8 @@ class MainWindow(BoxLayout):
             self.ids.label_notif.color = 1,0,0
 
     def reset_graph(self):
-        self.ids.slider_min_graph.value = DEFMINGRAPH
-        self.ids.slider_max_graph.value = DEFMAXGRAPH
+        # self.ids.slider_min_graph.value = DEFMINGRAPH
+        # self.ids.slider_max_graph.value = DEFMAXGRAPH
         self.min_graph = self.ids.slider_min_graph.value
         self.max_graph = self.ids.slider_max_graph.value
 
