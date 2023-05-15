@@ -19,28 +19,32 @@ import matplotlib.colors as mcolors
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import pyaudio
 from datetime import datetime
-from segpy.writer import write_segy
+# from segpy.writer import write_segy
 
 plt.style.use('bmh')
 p = pyaudio.PyAudio()
 
+BANDWITH = 20000
+MEDIUMSPEED = 300000000
+TAO = 1
+
 SAMPLESIZE = 500 # number of data points to read at a time default 4096
 SAMPLERATE = 100000 # time resolution of the recording self.device (Hz) 44100
 TIMESAMPLE = 0.01 #in second
-DISTANCE = 50
+DISTANCE = 10
 
-# stream=p.open(format=pyaudio.paFloat32,channels=1,rate=SAMPLERATE,input=True,frames_per_buffer=SAMPLESIZE)
+DEFTOPGAIN = 1.0
+DEFBOTTOMGAIN = 2.0
+# DEFMINGRAPH = 0
+# DEFMAXGRAPH = 1
 
 Window.clearcolor = (.9, .9, .9, 1)
 Window.fullscreen = 'auto'
-# Window.fullscreen = True
-# Window.size = (2880 , 1920)
 kivy.require('2.1.0')
 
 # Designate Our .kv design file 
 kv = Builder.load_file('main.kv')
-# Builder.load_file('main.kv')
-#Define our different screens
+
 class MainWindow(BoxLayout):
     checks_waveform = []
     checks_method = []
@@ -59,12 +63,15 @@ class MainWindow(BoxLayout):
     last_distance = 0
     dt_delay = 0
     dt_interval = 10
-    min_graph = 0.0
-    max_graph = 0.04
-    gradien_gain = 0.002
+    # min_graph = 0
+    # max_graph = 50
+    top_gain = 5
+    bottom_gain = 20
 
     data_signal = np.zeros(50)
     data_colormap = np.zeros((SAMPLESIZE, DISTANCE))
+    data_wiggles = np.zeros((SAMPLESIZE, 1))
+    data_samples = np.zeros((SAMPLESIZE, 1))
     data_adc = np.zeros(20)
 
     def __init__(self):
@@ -73,8 +80,13 @@ class MainWindow(BoxLayout):
         self.fig1, self.ax = plt.subplots()
         # self.fig2, (self.ax1, self.ax2, self.ax3) = plt.subplots(nrows=1, ncols=3, gridspec_kw={'width_ratios': [10, 1, 1]})
         self.fig2, (self.ax1, self.ax2) = plt.subplots(nrows=1, ncols=2, gridspec_kw={'width_ratios': [10, 2]})
+        # self.ids.slider_min_graph.value = DEFMINGRAPH
+        # self.ids.slider_max_graph.value = DEFMAXGRAPH
+        self.ids.slider_top_gain.value = DEFTOPGAIN
+        self.ids.slider_bottom_gain.value = DEFBOTTOMGAIN
         self.ids.slider_distance.max = DISTANCE
-        self.setting_screen()
+
+        self.graph_screen()
 
     def hide_widget(self, wid, dohide=True):
         if hasattr(wid, 'saved_attrs'):
@@ -85,36 +97,14 @@ class MainWindow(BoxLayout):
             wid.saved_attrs = wid.height, wid.size_hint_x, wid.size_hint_y, wid.opacity, wid.disabled
             wid.height, wid.size_hint_x, wid.size_hint_y, wid.opacity, wid.disabled = 0, None, None, 0, True
 
-    def setting_screen(self):
-        # self.ids.layout_graph_carrier.add_widget(FigureCanvasKivyAgg(self.fig1))
-        self.ids.layout_graph_signal.clear_widgets()
-
-        self.hide_widget(self.ids.layout_setting, False)
-        self.hide_widget(self.ids.layout_graph, True)
-        self.hide_widget(self.ids.layout_map, True)
-
-        self.ids.bt_screen_setting.disabled = True
-        self.ids.bt_screen_graph.disabled = False
-        self.ids.bt_screen_map.disabled = False
-
-        self.ids.bt_update_graph.disabled = True
-        self.ids.bt_save_data.disabled = True
-        self.ids.bt_save_graph.disabled = True
-        self.ids.bt_update_map.disabled = True
-
-        self.ids.label_page.text = "SETTING SCREEN"
-        Clock.unschedule(self.update_enco)
-        Clock.unschedule(self.update_graph_odometry)
-        Clock.unschedule(self.update_graph_time)
-
     def graph_screen(self):
-        self.ids.layout_graph_carrier.clear_widgets()
+        # self.ids.layout_graph_carrier.clear_widgets()
 
-        self.hide_widget(self.ids.layout_setting, True)
+        self.hide_widget(self.ids.layout_graph_setting, False)
         self.hide_widget(self.ids.layout_graph, False)
         self.hide_widget(self.ids.layout_map, True)
 
-        self.ids.bt_screen_setting.disabled = False
+        # self.ids.bt_screen_setting.disabled = False
         self.ids.bt_screen_graph.disabled = True
         self.ids.bt_screen_map.disabled = False
 
@@ -124,30 +114,28 @@ class MainWindow(BoxLayout):
 
         self.ids.label_page.text = "GRAPH SCREEN"
 
-        if("ODOMETRY" in self.dt_method):
-            self.ids.bt_update_graph.disabled = True
-            Clock.schedule_interval(self.update_graph_odometry, 1)
-
-        elif("CONTINUOUS" in self.dt_method):
+        if("CONTINUOUS" in self.dt_method):
             self.ids.bt_update_graph.disabled = True
             Clock.schedule_interval(self.update_graph_time, 2)
 
         elif("MANUAL" in self.dt_method):
             self.ids.bt_update_graph.disabled = False
+            Clock.unschedule(self.update_graph_time)
 
         else:
             self.ids.bt_update_graph.disabled = False
+            Clock.unschedule(self.update_graph_time)
 
 
     def map_screen(self):
-        self.ids.layout_graph_carrier.clear_widgets()
+        # self.ids.layout_graph_carrier.clear_widgets()
         self.ids.layout_graph_signal.clear_widgets()
 
-        self.hide_widget(self.ids.layout_setting, True)
+        self.hide_widget(self.ids.layout_graph_setting, True)
         self.hide_widget(self.ids.layout_graph, True)
         self.hide_widget(self.ids.layout_map, False)
 
-        self.ids.bt_screen_setting.disabled = False
+        # self.ids.bt_screen_setting.disabled = False
         self.ids.bt_screen_graph.disabled = False
         self.ids.bt_screen_map.disabled = True
 
@@ -157,109 +145,20 @@ class MainWindow(BoxLayout):
         self.ids.bt_update_map.disabled = False
 
         self.ids.label_page.text = "MAP SCREEN"
-        Clock.unschedule(self.update_enco)
-        Clock.unschedule(self.update_graph_odometry)
         Clock.unschedule(self.update_graph_time)
-
-    def refresh(self):
-        ports = serial.tools.list_ports.comports()
-        for port, desc, hwid in sorted(ports):
-            print("{}: {} [{}]".format(port, desc, hwid))                
-            self.com = str(port)
-        try:
-            self.ids.txt_com.text = self.com
-            self.device = serial.Serial(port=self.com, baudrate=115200, timeout=.1)
-            self.ids.bt_open_close_serial.disabled = False
-            self.ids.txt_com.disabled = True
-            self.ids.bt_refresh.disabled = True
-            self.ids.bt_send_signal.disabled = False
-            self.ids.bt_open_close_serial.text = "CLOSE COMMUNICATION"
-            Clock.schedule_interval(self.update_data, 1)
-            print("success open communication")
-            self.ids.label_notif.text = "success open communication"
-            self.ids.label_notif.color = 0,0,1
-        except:
-            print("error open communication")
-            self.ids.label_notif.text = "error open communication"
-            self.ids.label_notif.color = 1,0,0
-
-    def update_data(self, interval):
-        print("read")
-        try:
-            if self.device.in_waiting > 0:
-                serialString = self.device.readline()
-                # print(serialString)
-                decodedSerialString = serialString.decode("utf-8")
-                print(decodedSerialString)
-            
-                data_json = json.loads(decodedSerialString)
-                print(data_json)
-
-                if(data_json["type"] == "ENCO"):
-                    print("get encoder")
-
-                    self.dt_slider_distance = data_json["Pos"]
-                    self.ids.slider_distance.value = float(self.dt_slider_distance / 1000)
-                    self.dt_distance = int(self.dt_slider_distance / 1000)
-                    
-                    print("success update encoder data")
-                    self.ids.label_notif.text = "success update encoder data"
-                    self.ids.label_notif.color = 0,0,1
-                    
-                    print("last:"+str(self.last_distance)+" real:"+str(self.dt_distance))
-                    if(self.last_distance!=self.dt_distance):
-                        self.flag_move = True
-
-                    self.last_distance = self.dt_distance
-
-
-                elif(data_json["type"] == "GPS"):
-                    print("get gps")
-
-                    sign_ns = 1
-                    sign_ew = 1
-                    ns = data_json["ns"]
-                    ew = data_json["ew"]
-
-                    if(ns > 50):
-                        sign_ns = -1
-                    
-                    if(ew > 100):
-                        sign_ew = -1
-
-                    self.lon = (data_json["long"] * sign_ew / 100) + 0.248
-                    print(self.lon)
-                    self.ids.txt_lon.text = str(format(self.lon, '.3f'))
-
-                    self.lat = (data_json["lat"] * sign_ns / 100) - 0.35
-                    print(self.lat)
-                    self.ids.txt_lat.text = str(format(self.lat, '.3f'))
-
-                    self.map_mark()
-
-                    print("success update map data")
-                    self.ids.label_notif.text = "success update map data"
-                    self.ids.label_notif.color = 0,0,1
-        except:
-            print("error reading data")
-            self.ids.label_notif.text = "error reading data"
-            self.ids.label_notif.color = 1,0,0
-
-    def update_graph_odometry(self, interval):
-        Clock.schedule_interval(self.update_enco, 1)
-        if(self.flag_move):
-            self.update_graph()
-            self.flag_move = False
 
     def update_graph_time(self, interval):
         self.update_graph()
         self.dt_slider_distance += 1000
         self.ids.slider_distance.value = float(self.dt_slider_distance / 1000)
         self.dt_distance = int(self.dt_slider_distance / 1000)
-        
-        
 
     def update_graph(self):
+        # self.min_graph = self.ids.slider_min_graph.value
+        # self.max_graph = self.ids.slider_max_graph.value
+        self.top_gain = self.ids.slider_top_gain.value
+        self.bottom_gain = self.ids.slider_bottom_gain.value
+        
         stream = p.open(format=pyaudio.paFloat32,
                         channels = 1,
                         rate = SAMPLERATE,
@@ -267,87 +166,112 @@ class MainWindow(BoxLayout):
                         input = True)
         
         x = np.linspace(0, SAMPLESIZE-1, SAMPLESIZE)
-        # for i in range(0, int(SAMPLERATE / SAMPLESIZE * TIMESAMPLE)):self.dt_interval
-        # for i in range(0, int(SAMPLERATE / SAMPLESIZE * self.dt_interval / 5)):
 
         for i in range(0, int(SAMPLERATE / SAMPLESIZE * TIMESAMPLE)):
             self.data_signal = np.frombuffer(stream.read(SAMPLESIZE), dtype=np.float32)
-            # self.data_signal_stereo = np.frombuffer(stream.read(SAMPLESIZE), dtype=np.float32)
-        # print(self.data_signal_stereo.shape)
-        # temp_data_signal_stereo = self.data_signal_stereo
-        # temp_data_signal_stereo.resize([SAMPLESIZE, 2])
-        # print(temp_data_signal_stereo.shape)
-        # self.data_signal = temp_data_signal_stereo[:, 0]
-        # self.data_signal.flatten
-        # self.data_signal_2 = temp_data_signal_stereo[:, 1]
-        # print(self.data_signal.shape)
-          
+
         x_spec = np.fft.fftfreq(SAMPLESIZE, d = 1.0 / SAMPLERATE)
-        y_temp = np.fft.fft(-self.data_signal[0:SAMPLESIZE])
+        y_temp = np.fft.fft(self.data_signal[0:SAMPLESIZE])
         y_spec = np.asarray([np.sqrt(c.real ** 2 + c.imag ** 2) for c in y_temp])
+        y_gain = np.array([SAMPLESIZE])
+        y_intime = np.fft.ifft(y_spec).real
+        y_wiggle = np.asarray([np.sqrt(c.real ** 2 + c.imag ** 2) for c in y_intime])
 
         self.dt_distance = int(self.dt_slider_distance / 1000)
 
-        filtered_signal = self.data_signal.copy()
-        filtered_signal[(filtered_signal > self.max_graph)] = self.max_graph
+        x_gain = np.linspace(0, SAMPLESIZE-1, SAMPLESIZE)
+        y_gain = ( x_gain * (self.bottom_gain - self.top_gain) / SAMPLESIZE) + self.top_gain
 
+            # for i in range (0, SAMPLESIZE):
+            #     y_spec[i] = y_spec[i] * y_gain[i]
         
-        for i in range (0, len(y_spec)):
-            y_spec[i] = y_spec[i] * (1 + (self.gradien_gain * i))
-        
-        #np.where(self.data_signal > 0.01, 0.0 ,self.data_signal)
-        #np.where(self.data_signal < -0.01, 0.0 ,self.data_signal)
-        # print(self.data_colormap.shape)
-        #print(self.data_colormap)
-        #print(self.data_signal)
-        
-        #self.data_signal = filtered_signal
+        for i in range (0, SAMPLESIZE):
+            y_wiggle[i] = y_wiggle[i] * y_gain[i]
+
         if(self.dt_distance >= DISTANCE):
-            # temp_data_signal = self.data_signal
-            temp_data_signal = y_spec
+            # temp_data_signal = y_spec
+            temp_data_signal = y_wiggle
             temp_data_signal.resize([SAMPLESIZE, 1])
             self.data_colormap = np.concatenate([self.data_colormap, temp_data_signal], axis=1)
-            #np.dstack((self.data_colormap, self.data_signal))
+            self.data_wiggles = np.concatenate([self.data_wiggles, temp_data_signal], axis=1)
+            temp_data_samples = -x_spec
+            temp_data_samples.resize([SAMPLESIZE, 1])   
+            self.data_samples = np.concatenate([self.data_samples, temp_data_samples], axis=1)
             self.ids.slider_distance.max += 1
             
         else:
-            # self.data_colormap[: , self.dt_distance] = self.data_signal
-            self.data_colormap[: , self.dt_distance] = y_spec
+            # self.data_colormap[: , self.dt_distance] = y_spec
+            self.data_colormap[: , self.dt_distance] = y_wiggle
+            temp_data_signal = y_wiggle
+            temp_data_signal.resize([SAMPLESIZE, 1])            
+            self.data_wiggles = np.concatenate([self.data_wiggles, temp_data_signal], axis=1)
+            temp_data_samples = -x_spec
+            temp_data_samples.resize([SAMPLESIZE, 1])    
+            self.data_samples = np.concatenate([self.data_samples, temp_data_samples], axis=1)
 
         stream.stop_stream()
         stream.close()
 
-        self.fig2, (self.ax1, self.ax2) = plt.subplots(nrows=1, ncols=2, gridspec_kw={'width_ratios': [10, 1]})
+        # self.fig2, (self.ax1, self.ax2, self.ax3) = plt.subplots(nrows=1, ncols=3, gridspec_kw={'width_ratios': [10, 2, 1]})
+        self.fig2, (self.ax1, self.ax2) = plt.subplots(nrows=1, ncols=2, gridspec_kw={'width_ratios': [10, 2]})
         self.fig2.tight_layout()
         self.fig2.set_facecolor((.9,.9,.9))
-       
-        self.ax1.axis([0,DISTANCE, SAMPLESIZE/4,0])
-        #self.ax1.axis([0,DISTANCE, SAMPLERATE/16,0])
-        self.ax1.set_xlabel('distance (m)', fontsize=20)
-        self.ax1.set_ylabel('depth (m)', fontsize=20)
-        self.ax1.set_xlim(0, self.ids.slider_distance.max)
-        self.ax1.grid(False)
-
-        # cgrid = np.linspace(self.min_graph, self.min_graph, 10)
-        # cmap, norm = mcolors.from_levels_and_colors(cgrid,['blue', 'green', 'yellow', 'red'])
         
-        clrmesh = self.ax1.pcolor(self.data_colormap, cmap='turbo', vmin=self.min_graph, vmax=self.max_graph)
-        # clrmesh = self.ax1.pcolor(self.data_colormap, cmap=cmap, norm=norm)
-        self.fig2.colorbar(clrmesh, ax=self.ax1, format='%f')
+        # #plot color
+        # self.ax1.axis([0,DISTANCE, (SAMPLESIZE/2),0])
+        # #self.ax1.set_ylabel('frequency (Hz)', fontsize=20)
+        # # self.ax1.set_ylabel('time (ms)', fontsize=20)
+        # self.ax1.yaxis.set_ticks_position('right')
+        # self.ax1.set_xlabel('distance (m)', fontsize=20)
+        # # self.ax1.set_ylabel('depth (m)', fontsize=20)
+        # secax = self.ax1.secondary_yaxis('left', functions=(self.freq_to_depth, self.depth_to_freq))
+        # secax.set_ylabel('depth (m)', fontsize=20)
+        # #self.ax1.yaxis.set_ticks(np.arange(self.freq_to_depth(0), self.freq_to_depth(250), 100000))
 
-        # self.ax2.axis([self.min_graph, self.max_graph, SAMPLESIZE-1, 0])
-        # self.ax2.set_xlabel('amplitude (dB)', fontsize=25)
-        # self.ax2.set_ylabel('frequency (Hz)', fontsize=25)
-        # self.ax2.plot(self.data_signal, x, lw=1)
+        # self.ax1.set_xlim(0, self.ids.slider_distance.max)
+        # self.ax1.grid(False)
+     
+        # clrmesh = self.ax1.pcolor(self.data_colormap, cmap='turbo', vmin=self.min_graph, vmax=self.max_graph)
+        # self.fig2.colorbar(clrmesh, ax=self.ax1, format='%3.2f')
 
-        self.ax2.axis([self.min_graph, self.max_graph, SAMPLERATE/4, 0])
+        #plot wiggle
+        # Some example data
+        # self.ax1.axis([0,DISTANCE, (SAMPLESIZE/2),0])
+        self.ax1.set_xlabel('distance (m)', fontsize=20)
+        self.ax1.set_ylabel('depth', fontsize=20)
+        offsets = np.linspace(0, self.dt_distance-1, self.dt_distance)
+       
+        for offset, wiggle, sample in zip(offsets, self.data_wiggles.T, self.data_samples.T):
+            x = offset + wiggle
+            y = sample
+
+            self.ax1.plot(x, y, lw=1, linestyle='-', color='k')
+            self.ax1.fill_betweenx(y, offset, x, where=(x > offset), color='k')
+
+        self.ax1.set_xlim(0, self.ids.slider_distance.max)
+        self.ax1.set_ylim(SAMPLESIZE/TIMESAMPLE, 0)
+
+        # self.ax2.axis([self.min_graph, self.max_graph, SAMPLESIZE/TIMESAMPLE, 0])
+        self.ax2.set_ylim(SAMPLESIZE/TIMESAMPLE, 0)
         self.ax2.set_xlabel('amplitude', fontsize=20)
-        self.ax2.set_ylabel('frequency (Hz)', fontsize=20)
-        self.ax2.plot(y_spec, -x_spec, lw=1,marker= 'o', linestyle='-')
+        # self.ax2.set_ylabel('frequency (Hz)', fontsize=20)
+        # self.ax2.plot(y_spec, -x_spec, lw=1,marker= 'o', linestyle='-')
+        # self.ax2.plot(y_wiggle, -x_spec, lw=1,marker= 'o', linestyle='-')
+        self.ax2.plot(y_wiggle, -x_spec, lw=1, linestyle='-', color='k')
 
+        # self.ax3.axis([0, np.max(y_gain), -SAMPLESIZE, 0])
+        # self.ax3.set_xlabel('gain', fontsize=20)
+        # self.ax3.plot(y_gain, -x_gain, lw=1, linestyle='-', color='k')
+        
         self.ids.layout_graph_signal.clear_widgets()
         self.ids.layout_graph_signal.add_widget(FigureCanvasKivyAgg(self.fig2))
 
+    def freq_to_depth(self, freq):
+        return (freq * (MEDIUMSPEED * TAO) / (2 * BANDWITH))
+
+    def depth_to_freq(self, depth):
+        return (depth * (2 * BANDWITH) / (MEDIUMSPEED * TAO))
+    
     def update_enco(self, interval):
         try:
             data_json = json.dumps({"type":"ENCO"})
@@ -385,99 +309,6 @@ class MainWindow(BoxLayout):
 
         print("long:" + str(self.lon) + ", lat:" + str(self.lat) + ", zoom:" + str(self.zoom))
 
-    def open_close_serial(self):
-        if (self.device.isOpen()):
-            self.device.close()
-            self.ids.txt_com.disabled = False
-            self.ids.bt_refresh.disabled = False
-            self.ids.bt_send_signal.disabled = True            
-            self.ids.bt_open_close_serial.text = "OPEN COMMUNICATION"
-            Clock.unschedule(self.update_data)
-            print("communication port is closed")
-            self.ids.label_notif.text = "communication port is closed"
-            self.ids.label_notif.color = 0,0,1
-        else:
-            self.device.open()
-            self.ids.txt_com.disabled = True
-            self.ids.bt_refresh.disabled = True
-            self.ids.bt_send_signal.disabled = False
-            self.ids.bt_open_close_serial.text = "CLOSE COMMUNICATION"
-            Clock.schedule_interval(self.update_data, 1)
-            print("communication port is opened")
-            self.ids.label_notif.text = "communication port is opened"
-            self.ids.label_notif.color = 0,0,1
-            
-    def stop_signal(self):
-        self.flag_signal = False
-        self.ids.bt_send_signal.text = "GENERATE SIGNAL"
-
-        data_json = json.dumps({"type":"STOP"})
-        str_send = data_json + "\n"
-        self.device.write(str_send.encode())
-        print(str_send)            
-
-        print("signal stopped")
-        self.ids.label_notif.text = "signal stopped"
-        self.ids.label_notif.color = 1,0,0
-
-    def send_signal(self):
-        self.dt_frequency_min = self.ids.slider_min.value
-        self.dt_frequency_max = self.ids.slider_max.value
-        self.dt_interval = self.ids.slider_interval.value
-
-        offset = (self.dt_frequency_max + self.dt_frequency_min) / 2
-        amplitude = (self.dt_frequency_max - self.dt_frequency_min) / 2
-
-        x_axis = np.linspace(0, 100, int(10000/self.dt_interval), endpoint=True) #20 data per periode in 100ms axis
-
-        if("TRIANGLE" in self.dt_waveform):
-            y_axis = offset + (4 * amplitude / self.dt_interval) * np.abs((((x_axis - self.dt_interval / 4) % self.dt_interval) + self.dt_interval) % self.dt_interval - self.dt_interval / 2 ) - amplitude
-            data_adc = np.round(0.0 + (1.0 - 0.0) * ((y_axis - 160) / (360 - 160)) , 2)
-            # print(y_axis)
-        elif("SQUARE" in self.dt_waveform):
-            y_axis = offset + (amplitude * np.sign (np.sin(2 * np.pi * 1 / self.dt_interval * x_axis)))
-            data_adc = np.round(0.0 + (1.0 - 0.0) * ((y_axis - 160) / (360 - 160)) , 2)
-            # print(y_axis)
-        elif("SAWTOOTH" in self.dt_waveform):
-            y_axis = self.dt_frequency_min + ((2 * amplitude / self.dt_interval) * (x_axis % self.dt_interval))
-            data_adc = np.round(0.0 + (1.0 - 0.0) * ((y_axis - 160) / (360 - 160)) , 2)
-            # print(y_axis)
-        else:
-            y_axis = 0 * x_axis
-            data_adc = y_axis
-
-        if(self.flag_signal):
-            y_axis = 0 * x_axis
-            self.stop_signal()
-
-        else:
-            self.flag_signal = True
-            self.ids.bt_send_signal.text = "STOP SIGNAL"
-            try:
-                data_json = json.dumps({"type":"DAC","value":list(data_adc[0:99:5]),"periode":self.dt_interval})
-                str_send = data_json + "\n"
-                self.device.write(str_send.encode())
-                print(str_send)
-
-                print("success generating signal")
-                self.ids.label_notif.text = "success generating signal"
-                self.ids.label_notif.color = 0,0,1
-            except:
-                print("error generating signal")
-                self.ids.label_notif.text = "error generating signal"
-                self.ids.label_notif.color = 1,0,0
-
-        self.fig1, self.ax = plt.subplots()
-        self.fig1.tight_layout()
-        self.fig1.set_facecolor((.9,.9,.9))
-        self.ax.set_facecolor((.9,.9,.9))
-        self.ax.set_xlabel('time (ms)', fontsize=25)
-        self.ax.set_ylabel('amplitude (Hz)', fontsize=25)
-        self.ax.plot(x_axis, y_axis)
-
-        self.ids.layout_graph_carrier.clear_widgets()
-        self.ids.layout_graph_carrier.add_widget(FigureCanvasKivyAgg(self.fig1))
-
     def request_map(self):
         if(self.flag_map):
             Clock.unschedule(self.update_map)
@@ -501,52 +332,15 @@ class MainWindow(BoxLayout):
         self.ids.slider_distance.value = float(self.dt_slider_distance / 1000)
         self.dt_distance = int(self.dt_slider_distance / 1000)
 
-    def report_segy(self, in_filename):
-        with open(in_filename, 'rb') as in_file:
-            # segy_reader = create_reader(in_file)
-            segy_reader = segy_reader(in_file)
-
-            print()
-            print("Filename:             ", segy_reader.filename)
-            print("SEG Y revision:       ", segy_reader.revision)
-            print("Number of traces:     ", segy_reader.num_traces())
-            print("Data format:          ",
-                segy_reader.data_sample_format_description)
-            print("Dimensionality:       ", segy_reader.dimensionality)
-
-            try:
-                print("Number of CDPs:       ", segy_reader.num_cdps())
-            except AttributeError:
-                pass
-
-            try:
-                print("Number of inlines:    ", segy_reader.num_inlines())
-                print("Number of crosslines: ", segy_reader.num_xlines())
-            except AttributeError:
-                pass
-
-            print("=== BEGIN TEXTUAL REEL HEADER ===")
-            for line in segy_reader.textual_reel_header:
-                print(line[3:])
-            print("=== END TEXTUAL REEL HEADER ===")
-            print()
-            print("=== BEGIN EXTENDED TEXTUAL HEADER ===")
-            print(segy_reader.extended_textual_header)
-            print("=== END EXTENDED TEXTUAL_HEADER ===")
-        
     def save_data(self):
         try:
-            now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S.sgy")
-            
+            now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S.segy")
             with open(now,"wb") as f:
                 np.savetxt(f, self.data_colormap, fmt="%f")
                 # write_segy(f, self.data_colormap, endian=">")
             print("sucessfully save data")
             self.ids.label_notif.text = "sucessfully save data"
             self.ids.label_notif.color = 0,0,1
-            # self.report_segy(now)
-
-            
         except:
             print("error saving data")
             self.ids.label_notif.text = "error saving data"
@@ -564,27 +358,23 @@ class MainWindow(BoxLayout):
             self.ids.label_notif.text = "error saving graph"
             self.ids.label_notif.color = 1,0,0
 
+    def reset_graph(self):
+        self.ids.slider_min_graph.value = DEFMINGRAPH
+        self.ids.slider_max_graph.value = DEFMAXGRAPH
+        self.min_graph = self.ids.slider_min_graph.value
+        self.max_graph = self.ids.slider_max_graph.value
+
+    def reset_gain(self):
+        self.ids.slider_top_gain.value = DEFTOPGAIN
+        self.ids.slider_bottom_gain.value = DEFBOTTOMGAIN
+        self.top_gain = self.ids.slider_top_gain.value
+        self.bottom_gain = self.ids.slider_bottom_gain.value
+
     def exec_exit(self):
         quit()
 
     def exec_shutdown(self):
         os.system("shutdown /s /t 1")
-
-    def checkbox_waveform_click(self, instance, value, waves):
-        if value == True:
-            self.checks_waveform.append(waves)
-            waveforms = ''
-            for x in self.checks_waveform:
-                waveforms = f'{waveforms} {x}'
-            self.ids.output_label.text = f'{waveforms} WAVEFORM CHOSEN'
-        else:
-            self.checks_waveform.remove(waves)
-            waveforms = ''
-            for x in self.checks_waveform:
-                waveforms = f'{waveforms} {x}'
-            self.ids.output_label.text = ''
-        
-        self.dt_waveform = waveforms
 
     def checkbox_method_click(self, instance, value, meths):
         if value == True:
@@ -592,15 +382,25 @@ class MainWindow(BoxLayout):
             methods = ''
             for x in self.checks_method:
                 methods = f'{methods} {x}'
-            self.ids.output_label_method.text = f'{methods} METHOD CHOSEN'
         else:
             self.checks_method.remove(meths)
             methods = ''
             for x in self.checks_method:
                 methods = f'{methods} {x}'
-            self.ids.output_label_method.text = ''
         
         self.dt_method = methods
+
+        if("CONTINUOUS" in self.dt_method):
+            self.ids.bt_update_graph.disabled = True
+            Clock.schedule_interval(self.update_graph_time, 2)
+
+        elif("MANUAL" in self.dt_method):
+            self.ids.bt_update_graph.disabled = False
+            Clock.unschedule(self.update_graph_time)
+
+        else:
+            self.ids.bt_update_graph.disabled = False
+            Clock.unschedule(self.update_graph_time)
 
 
 class GPRApp(App):

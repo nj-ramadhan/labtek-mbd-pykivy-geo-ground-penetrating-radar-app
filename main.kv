@@ -1,5 +1,4 @@
 #:kivy 2.1.0
-#:import NoTransition kivy.uix.screenmanager.NoTransition
 #:import MapView kivy.garden.mapview.MapView
 #:import MapMarkerPopup kivy.garden.mapview.MapMarkerPopup
 
@@ -30,25 +29,18 @@
                     font_size: 80
                     size_hint_y: 2
                     color: 0, 0, 0
-                
-            # Image:
-            #     id: powered_by
-            #     source:'asset/powered.png'
-            #     size_hint_x: 0.05
-            #     allow_stretch: True
-
 		
 		# comm header layout
 		BoxLayout:
 			id: comm_header_layout
 			orientation: "vertical"
-			size_hint_y: 0.14
+			size_hint_y: 0.1
 			padding:20
 			spacing:20
 
 			Label:
 				id : label_page
-				text: "SETTING SCREEN"
+				text: "GRAPH SCREEN"
 				bold: True
 				font_size: 64
 				color: 0, 0, 0
@@ -61,310 +53,196 @@
 				font_size: 32
 				color: 1, 0, 0
 
-			BoxLayout:
-				orientation: "horizontal"
-				spacing:50
-
-				Label:
-					text: "DEVICE COMMUNICATION PORT"
-					font_size: 44
-					color: 0, 0, 0
-
-				TextInput:
-					id: txt_com
-					multiline: False
-					font_size: 36
-
-				Button:
-					id: bt_refresh
-					text: "REFRESH"
-					font_size: 44
-					on_press: root.refresh()
-
-				Button:
-					id: bt_open_close_serial
-					text: "OPEN COMMUNICATION"
-					font_size: 44
-					disabled: True
-					on_press: root.open_close_serial()
-
-		# setting layout
+		
+		# graph layout
 		BoxLayout:
-			id: layout_setting
-			orientation: "vertical"
-			size_hint_y: 0.6
+			id: layout_graph_setting
+			orientation: "horizontal"
+			size_hint_y: 0.2
 			padding:20
 			spacing:20
 
 			BoxLayout:
-				orientation: "horizontal"
-				size_hint_y: 0.7
-				BoxLayout:
-					orientation: "vertical"
-					canvas.before:
-						Color:
-							rgba: 0.5, 0, 0, 1
-						Line:
-							width: 2
-							rectangle: self.x, self.y, self.width, self.height
-
-					Label:
-						text: "WAVEFORM"
-						bold: True
-						font_size: 44
-						color: 0, 0, 0
-						size_hint_y: 0.25
-
-					Label:
-						text: ""
-						size_hint_y: 0.1
-
-					GridLayout:
-						cols:2
-						row_force_default: True
-						row_default_height: 120
-
-						CheckBox:
-							group: "waveform"
-							color: 0.5, 0, 0
-							# size_hint_x: None
-							size_hint: None, None
-							size: 96, 96
-							width: 300
-							# check_size:200
-							on_active: root.checkbox_waveform_click(self, self.active, "TRIANGLE")
-
-						Label:
-							text: "TRIANGLE"
-							text_size: self.size
-							halign: "left"
-							valign: "middle"
-							font_size:44
-							color: 0, 0, 0
-
-						CheckBox:
-							group: "waveform"
-							color: 0.5, 0, 0
-							size_hint_x: None
-							width: 300
-							on_active: root.checkbox_waveform_click(self, self.active, "SQUARE")
-							
-						Label:
-							text: "SQUARE"
-							text_size: self.size
-							halign: "left"
-							valign: "middle"
-							font_size:44
-							color: 0, 0, 0
-
-						CheckBox:
-							group: "waveform"
-							color: 0.5, 0, 0
-							size_hint_x: None
-							width: 300
-							on_active: root.checkbox_waveform_click(self, self.active, "SAWTOOTH")		
-
-						Label:
-							text: "SAWTOOTH"
-							text_size: self.size
-							halign: "left"
-							valign: "middle"
-							font_size:44
-							color: 0, 0, 0
-
-					Label:
-						id: output_label
-						text: ""
-						font_size:36
-						bold: True
-						color: 0, 0, 0
-						size_hint_y: 0.7
-
-				BoxLayout:
-					orientation: "vertical"
-					canvas.before:
-						Color:
-							rgba: 0, 0.5, 0, 1
-						Line:
-							width: 2
-							rectangle: self.x, self.y, self.width, self.height
-					
-					Label:
-						text: "FREQUENCY"
-						bold: True
-						font_size: 44
-						color: 0, 0, 0
-						size_hint_y: 0.1
-
-					GridLayout:
-						cols:2
-
-						Label:
-							text: "Min"
-							font_size:40
-							color: 0, 0, 0
-
-						Label:
-							text: "Max"
-							font_size:40
-							color: 0, 0, 0
-
-						Slider:
-							id: slider_min
-							min: 199.99
-							max: 200.01
-							step: 0.001
-							value: 199.995
-							orientation: 'vertical'
-
-						Slider:
-							id: slider_max
-							min: 199.99
-							max: 200.01
-							step: 0.001
-							value: 200.005
-							orientation: 'vertical'
-
-						Label:
-							text: f"{slider_min.value:2.3f} Mhz" 
-							font_size:36
-							color: 0, 0, 0
-							bold: True
-						
-						Label:
-							text:  f"{slider_max.value:2.3f} Mhz" 
-							font_size:36
-							color: 0, 0, 0
-							bold: True
-
-				BoxLayout:
-					orientation: "vertical"
-					canvas.before:
-						Color:
-							rgba: 0, 0, 0.5, 1
-						Line:
-							width: 2
-							rectangle: self.x, self.y, self.width, self.height
-
-					Label:
-						text: "TIME PERIODE"
-						bold: True
-						font_size: 44
-						color: 0, 0, 0
-						size_hint_y: 0.1
-
-					GridLayout:
-						cols:1
-						Label:
-							text: ""
-							size_hint_y: 0.4
-							font_size:44
-							
-						Slider:
-							id: slider_interval
-							min: 10
-							max: 100
-							step: 10
-							orientation: 'vertical'
-
-						Label:
-							text: str(slider_interval.value) + " milli second" 
-							font_size:36
-							color: 0, 0, 0
-							bold: True
-
-				BoxLayout:
-					orientation: "vertical"
-					canvas.before:
-						Color:
-							rgba: 0.5, 0, 0, 1
-						Line:
-							width: 2
-							rectangle: self.x, self.y, self.width, self.height
-
-					Label:
-						text: "MEASUREMENT METHOD"
-						bold: True
-						font_size: 44
-						color: 0, 0, 0
-						size_hint_y: 0.25
-
-					Label:
-						text: ""
-						size_hint_y: 0.1
-
-					GridLayout:
-						cols:2
-						row_force_default: True
-						row_default_height: 120
-
-						#CheckBox:
-						#	group: "method"
-						#	color: 0.5, 0, 0
-						#	size_hint_x: None
-						#	width: 300
-						#	on_active: root.checkbox_method_click(self, self.active, "ODOMETRY")
-
-						#Label:
-						#	text: "ODOMETRY"
-						#	text_size: self.size
-						#	halign: "left"
-						#	valign: "middle"
-						#	font_size:44
-						#	color: 0, 0, 0
-
-						CheckBox:
-							group: "method"
-							color: 0.5, 0, 0
-							size_hint_x: None
-							width: 300
-							on_active: root.checkbox_method_click(self, self.active, "CONTINUOUS ")
-							
-						Label:
-							text: "CONTINUOUS"
-							text_size: self.size
-							halign: "left"
-							valign: "middle"
-							font_size:44
-							color: 0, 0, 0
-
-						CheckBox:
-							group: "method"
-							color: 0.5, 0, 0
-							size_hint_x: None
-							width: 300
-							on_active: root.checkbox_method_click(self, self.active, "MANUAL")		
-
-						Label:
-							text: "MANUAL"
-							text_size: self.size
-							halign: "left"
-							valign: "middle"
-							font_size:44
-							color: 0, 0, 0
-
-					Label:
-						id: output_label_method
-						text: ""
-						font_size:36
-						bold: True
-						color: 0, 0, 0
-						size_hint_y: 0.7
-
-
-			# graph carrier layout
-			BoxLayout:
-				id: layout_graph_carrier
 				orientation: "vertical"
-				size_hint_y: 0.3
+				canvas.before:
+					Color:
+						rgba: 0.5, 0, 0, 1
+					Line:
+						width: 2
+						rectangle: self.x, self.y, self.width, self.height
+
+				Label:
+					text: "MEASUREMENT METHOD"
+					bold: True
+					font_size: 36
+					color: 0, 0, 0
+					size_hint_y: 0.5
+
+				GridLayout:
+					cols:2
+					row_force_default: True
+					row_default_height: 50
+
+					CheckBox:
+						group: "method"
+						color: 0.5, 0, 0
+						size_hint_x: None
+						width: 100
+						on_active: root.checkbox_method_click(self, self.active, "CONTINUOUS ")
+							
+					Label:
+						text: "CONTINUOUS"
+						text_size: self.size
+						halign: "left"
+						valign: "middle"
+						font_size:36
+						color: 0, 0, 0
+
+					CheckBox:
+						group: "method"
+						color: 0.5, 0, 0
+						size_hint_x: None
+						width: 100
+						on_active: root.checkbox_method_click(self, self.active, "MANUAL")		
+
+					Label:
+						text: "MANUAL"
+						text_size: self.size
+						halign: "left"
+						valign: "middle"
+						font_size:36
+						color: 0, 0, 0
+			BoxLayout:
+				orientation: "vertical"
 				padding:20
-				spacing:20			
-		
-		# graph layout
+				spacing:10
+				canvas.before:
+					Color:
+						rgba: 0, 0, 0.5, 1
+					Line:
+						width: 2
+						rectangle: self.x, self.y, self.width, self.height
+				Label:
+					id: label_gain
+					text: "GRAPH GAIN"
+					font_size:36
+					bold: True
+					color: 0, 0, 0
+
+				BoxLayout:
+					orientation: "horizontal"
+
+					Label:
+						text: "TOP"
+						font_size:36
+						color: 0, 0, 0
+
+					Slider:
+						id: slider_top_gain
+						min: 0.0
+						max: 10.0
+						value: 1.0
+						step: 0.1
+						orientation: 'horizontal'
+
+					Label:
+						text: f"{slider_top_gain.value:2.2f}"
+						font_size:36
+						color: 0, 0, 0
+				BoxLayout:
+					orientation: "horizontal"
+
+					Label:
+						text: "BOTTOM"
+						font_size:36
+						color: 0, 0, 0
+
+					Slider:
+						id: slider_bottom_gain
+						min: 0.0
+						max: 10.0
+						value: 2.0
+						step: 0.1
+						orientation: 'horizontal'
+
+					Label:
+						text: f"{slider_bottom_gain.value:2.2f}"
+						font_size:36
+						color: 0, 0, 0
+					
+				Button:
+					text:"RESET"
+					font_size: 36
+					on_press: root.reset_gain()
+
+			# BoxLayout:
+			# 	orientation: "vertical"
+			# 	padding:20
+			# 	spacing:10
+			# 	canvas.before:
+			# 		Color:
+			# 			rgba: 0, 0.5, 0, 1
+			# 		Line:
+			# 			width: 2
+			# 			rectangle: self.x, self.y, self.width, self.height
+			# 	Label:
+			# 		id: label_min-max
+			# 		text: "COLOR SCALE MIN-MAX"
+			# 		font_size:36
+			# 		bold: True
+			# 		color: 0, 0, 0
+
+			# 	BoxLayout:
+			# 		orientation: "horizontal"
+
+			# 		Label:
+			# 			text: "MIN"
+			# 			font_size:36
+			# 			color: 0, 0, 0
+
+			# 		Slider:
+			# 			id: slider_min_graph
+			# 			min: -5
+			# 			max: 5
+			# 			value: 0
+			# 			step: 1
+			# 			orientation: 'horizontal'
+
+			# 		Label:
+			# 			text: f"{slider_min_graph.value:2.1f}"
+			# 			font_size:36
+			# 			color: 0, 0, 0
+
+			# 	BoxLayout:
+			# 		orientation: "horizontal"
+
+			# 		Label:
+			# 			text: "MAX"
+			# 			font_size:36
+			# 			color: 0, 0, 0
+
+			# 		Slider:
+			# 			id: slider_max_graph
+			# 			min: -5
+			# 			max: 5
+			# 			value: 1
+			# 			step: 1
+			# 			orientation: 'horizontal'
+
+			# 		Label:
+			# 			text: f"{slider_max_graph.value:2.1f}"
+			# 			font_size:36
+			# 			color: 0, 0, 0
+
+			# 	Button:
+			# 		text:"RESET"
+			# 		font_size: 36
+			# 		on_press: root.reset_graph()
+						
 		BoxLayout:
 			id: layout_graph
 			orientation: "vertical"
-			size_hint_y: 0.6
+			size_hint_y: 0.75
 			padding:20
 			spacing:20
 
@@ -383,7 +261,7 @@
 					max: 99
 					step: 0.001
 					orientation: 'horizontal'
-					size_hint_x: 0.72
+					size_hint_x: 0.82
 					padding:150
 
 				Label:
@@ -392,7 +270,7 @@
 					font_size:36
 					color: 0, 0, 0
 					bold: True
-					size_hint_x: 0.28
+					size_hint_x: 0.18
 
 		# map layout
 		BoxLayout:
@@ -458,7 +336,6 @@
 				color: 1, 0, 0
 				size_hint_y: 0.1
 
-
 			MapView:
 				id: map_view
 				lon: root.lon
@@ -477,18 +354,17 @@
 			size_hint_y: 0.08
 			padding:20	
 			spacing:50			
-			Button:
-				id: bt_send_signal
-				text: "GENERATE SIGNAL"
-				font_size: 44
-				disabled: True
-				on_press: root.send_signal()
+			# Button:
+			# 	id: bt_send_signal
+			# 	text: "GENERATE SIGNAL"
+			# 	font_size: 44
+			# 	disabled: True
+			# 	on_press: root.send_signal()
 
 			Button:
 				id: bt_update_graph
 				text: "UPDATE GRAPH"
 				font_size: 44
-				disabled: True
 				on_press: root.request_graph()
 
 			Button:
@@ -520,11 +396,11 @@
 			padding:20
 			spacing:50
 
-			Button:
-				id: bt_screen_setting
-				text: "SETTING"
-				font_size: 44
-				on_press: root.setting_screen()
+			# Button:
+			# 	id: bt_screen_setting
+			# 	text: "SETTING"
+			# 	font_size: 44
+			# 	on_press: root.setting_screen()
 
 			Button:
 				id: bt_screen_graph
