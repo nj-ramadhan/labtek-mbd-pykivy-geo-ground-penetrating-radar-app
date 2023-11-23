@@ -19,6 +19,10 @@ import matplotlib.colors as mcolors
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import pyaudio
 from datetime import datetime
+from obspy import read, Trace, Stream, UTCDateTime
+from obspy.core import AttribDict
+from obspy.io.segy.segy import SEGYTraceHeader, SEGYBinaryFileHeader
+from obspy.io.segy.core import _read_segy
 # from segpy.writer import write_segy
 
 plt.style.use('bmh')
@@ -44,6 +48,8 @@ kivy.require('2.1.0')
 
 # Designate Our .kv design file 
 kv = Builder.load_file('main.kv')
+
+stream = Stream()
 
 class MainWindow(BoxLayout):
     checks_waveform = []
@@ -192,6 +198,9 @@ class MainWindow(BoxLayout):
             # temp_data_signal = y_spec
             temp_data_signal = y_wiggle
             temp_data_signal.resize([SAMPLESIZE, 1])
+
+            stream.append(temp_data_signal)
+
             self.data_colormap = np.concatenate([self.data_colormap, temp_data_signal], axis=1)
             self.data_wiggles = np.concatenate([self.data_wiggles, temp_data_signal], axis=1)
             temp_data_samples = -x_spec
@@ -203,7 +212,10 @@ class MainWindow(BoxLayout):
             # self.data_colormap[: , self.dt_distance] = y_spec
             self.data_colormap[: , self.dt_distance] = y_wiggle
             temp_data_signal = y_wiggle
-            temp_data_signal.resize([SAMPLESIZE, 1])            
+            temp_data_signal.resize([SAMPLESIZE, 1])
+
+            stream.append(temp_data_signal)
+                        
             self.data_wiggles = np.concatenate([self.data_wiggles, temp_data_signal], axis=1)
             temp_data_samples = -x_spec
             temp_data_samples.resize([SAMPLESIZE, 1])    
@@ -334,10 +346,42 @@ class MainWindow(BoxLayout):
 
     def save_data(self):
         try:
-            now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S.segy")
-            with open(now,"wb") as f:
-                np.savetxt(f, self.data_colormap, fmt="%f")
-                # write_segy(f, self.data_colormap, endian=">")
+            name_file_now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S.segy")
+
+            # A SEGY file has file wide headers. This can be attached to the stream
+            # object.  If these are not set, they will be autocreated with default
+            # values.
+            stream.stats = AttribDict()
+            stream.stats.textual_file_header = 'Textual Header!'
+            stream.stats.binary_file_header = SEGYBinaryFileHeader()
+            stream.stats.binary_file_header.trace_sorting_code = 5
+
+            print("Stream object before writing...")
+            print(stream)
+
+            stream.write(name_file_now, format="SEGY", data_encoding=1,
+                        byteorder=sys.byteorder)
+            print("Stream object after writing. Will have some segy attributes...")
+            print(stream)
+
+            print("Reading using obspy.io.segy...")
+            st1 = _read_segy("TEST.sgy")
+            print(st1)
+
+            print("Reading using obspy.core...")
+            st2 = read("TEST.sgy")
+            print(st2)
+
+            print("Just to show that the values are written...")
+            print([tr.stats.segy.trace_header.receiver_group_elevation for tr in stream])
+            print([tr.stats.segy.trace_header.receiver_group_elevation for tr in st2])
+            print(stream.stats.binary_file_header.trace_sorting_code)
+            print(st1.stats.binary_file_header.trace_sorting_code)
+
+            
+            # with open(now,"wb") as f:
+            #     np.savetxt(f, self.data_colormap, fmt="%f")
+            #     # write_segy(f, self.data_colormap, endian=">")
             print("sucessfully save data")
             self.ids.label_notif.text = "sucessfully save data"
             self.ids.label_notif.color = 0,0,1

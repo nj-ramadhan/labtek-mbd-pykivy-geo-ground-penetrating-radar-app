@@ -1,0 +1,6 @@
+Kivy==2.2.1
+matplotlib==3.7.2
+numpy==1.25.1
+obspy==1.4.0
+pyaudio==0.2.14
+pyserial==3.5
