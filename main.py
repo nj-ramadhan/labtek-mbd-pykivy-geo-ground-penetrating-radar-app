@@ -7,16 +7,11 @@ import os
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.core.window import Window
-from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.clock import Clock
 from kivy.config import Config
 from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 import matplotlib.pyplot as plt
-import matplotlib as mpl
-from matplotlib.figure import Figure
-import matplotlib.colors as mcolors
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import pyaudio
 from datetime import datetime
 from obspy import read, Trace, Stream, UTCDateTime
