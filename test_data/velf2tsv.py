@@ -93,11 +93,11 @@ for f in infiles:
         #outf2=open(f+'.essov2','w') # esso v2 stackign velocity format files
         
         linenum=0
-        print "Reading ", infile
+        print("Reading "), infile
         for line in infile:
             linenum+=1
             if args.stopat and linenum>=args.stopat:
-                print "Stopped at line", args.stopat, "due to argument --stopat"
+                print("Stopped at line"), args.stopat, "due to argument --stopat"
                 break
             
             if line.startswith("VELF") and len(line)>6:
@@ -144,9 +144,9 @@ for f in infiles:
                 if inHeader:
                     outf.write('#'+line)
                 else:
-                    print "Can't parse (comment?) line", line
+                    print("Can't parse (comment?) line"), line
                     
-        print "Writing file", outf
+        print("Writing file"), outf
         for i in range(len(vels)):
             v=vels[i]
             t=times[i]

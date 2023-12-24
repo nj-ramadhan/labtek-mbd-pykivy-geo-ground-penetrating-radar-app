@@ -23,7 +23,6 @@ from obspy import read, Trace, Stream, UTCDateTime
 from obspy.core import AttribDict
 from obspy.io.segy.segy import SEGYTraceHeader, SEGYBinaryFileHeader
 from obspy.io.segy.core import _read_segy
-# from segpy.writer import write_segy
 
 plt.style.use('bmh')
 p = pyaudio.PyAudio()
@@ -49,7 +48,7 @@ kivy.require('2.1.0')
 # Designate Our .kv design file 
 kv = Builder.load_file('main.kv')
 
-stream = Stream()
+data_stream = Stream()
 
 class MainWindow(BoxLayout):
     checks_waveform = []
@@ -79,6 +78,7 @@ class MainWindow(BoxLayout):
     data_wiggles = np.zeros((SAMPLESIZE, 1))
     data_samples = np.zeros((SAMPLESIZE, 1))
     data_adc = np.zeros(20)
+    sequence = 0
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -182,6 +182,39 @@ class MainWindow(BoxLayout):
         y_gain = np.array([SAMPLESIZE])
         y_intime = np.fft.ifft(y_spec).real
         y_wiggle = np.asarray([np.sqrt(c.real ** 2 + c.imag ** 2) for c in y_intime])
+        
+        # add data to obspy trace
+        conv_y_wiggle = np.require(y_wiggle, dtype=np.float32)
+        trace = Trace(data=conv_y_wiggle)
+        
+        # Attributes in trace.stats will overwrite everything in
+        # trace.stats.segy.trace_header
+        trace.stats.delta = 0.01
+        # SEGY does not support microsecond precision! Any microseconds will
+        # be discarded.
+        year = int(datetime.now().strftime("%Y"))
+        month = int(datetime.now().strftime("%m"))
+        date = int(datetime.now().strftime("%d"))
+        hour = int(datetime.now().strftime("%H"))
+        minute = int(datetime.now().strftime("%M"))
+        second = int(datetime.now().strftime("%S"))
+
+        trace.stats.starttime = UTCDateTime(year, month, date, hour, minute, second)
+
+        # If you want to set some additional attributes in the trace header,
+        # add one and only set the attributes you want to be set. Otherwise the
+        # header will be created for you with default values.
+
+        self.sequence += 1
+
+        if not hasattr(trace.stats, 'segy.trace_header'):
+            trace.stats.segy = {}
+        trace.stats.segy.trace_header = SEGYTraceHeader()
+        trace.stats.segy.trace_header.trace_sequence_number_within_line = self.sequence
+        trace.stats.segy.trace_header.receiver_group_elevation = 444
+
+        # Add trace to stream
+        data_stream.append(trace)
 
         self.dt_distance = int(self.dt_slider_distance / 1000)
 
@@ -199,7 +232,7 @@ class MainWindow(BoxLayout):
             temp_data_signal = y_wiggle
             temp_data_signal.resize([SAMPLESIZE, 1])
 
-            stream.append(temp_data_signal)
+            data_stream.append(trace)
 
             self.data_colormap = np.concatenate([self.data_colormap, temp_data_signal], axis=1)
             self.data_wiggles = np.concatenate([self.data_wiggles, temp_data_signal], axis=1)
@@ -214,7 +247,7 @@ class MainWindow(BoxLayout):
             temp_data_signal = y_wiggle
             temp_data_signal.resize([SAMPLESIZE, 1])
 
-            stream.append(temp_data_signal)
+            data_stream.append(trace)
                         
             self.data_wiggles = np.concatenate([self.data_wiggles, temp_data_signal], axis=1)
             temp_data_samples = -x_spec
@@ -346,36 +379,36 @@ class MainWindow(BoxLayout):
 
     def save_data(self):
         try:
-            name_file_now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S.segy")
+            name_file_now = datetime.now().strftime("%d_%m_%Y_%H_%M_%S.sgy")
 
             # A SEGY file has file wide headers. This can be attached to the stream
             # object.  If these are not set, they will be autocreated with default
             # values.
-            stream.stats = AttribDict()
-            stream.stats.textual_file_header = 'Textual Header!'
-            stream.stats.binary_file_header = SEGYBinaryFileHeader()
-            stream.stats.binary_file_header.trace_sorting_code = 5
+            data_stream.stats = AttribDict()
+            data_stream.stats.textual_file_header = 'Textual Header!'
+            data_stream.stats.binary_file_header = SEGYBinaryFileHeader()
+            data_stream.stats.binary_file_header.trace_sorting_code = 5
 
             print("Stream object before writing...")
-            print(stream)
+            print(data_stream)
 
-            stream.write(name_file_now, format="SEGY", data_encoding=1,
+            data_stream.write(name_file_now, format="SEGY", data_encoding=1,
                         byteorder=sys.byteorder)
             print("Stream object after writing. Will have some segy attributes...")
-            print(stream)
+            print(data_stream)
 
             print("Reading using obspy.io.segy...")
-            st1 = _read_segy("TEST.sgy")
+            st1 = _read_segy(name_file_now)
             print(st1)
 
             print("Reading using obspy.core...")
-            st2 = read("TEST.sgy")
+            st2 = read(name_file_now)
             print(st2)
 
             print("Just to show that the values are written...")
-            print([tr.stats.segy.trace_header.receiver_group_elevation for tr in stream])
+            print([tr.stats.segy.trace_header.receiver_group_elevation for tr in data_stream])
             print([tr.stats.segy.trace_header.receiver_group_elevation for tr in st2])
-            print(stream.stats.binary_file_header.trace_sorting_code)
+            print(data_stream.stats.binary_file_header.trace_sorting_code)
             print(st1.stats.binary_file_header.trace_sorting_code)
 
             
@@ -385,8 +418,9 @@ class MainWindow(BoxLayout):
             print("sucessfully save data")
             self.ids.label_notif.text = "sucessfully save data"
             self.ids.label_notif.color = 0,0,1
-        except:
+        except Exception as e:
             print("error saving data")
+            print(e)
             self.ids.label_notif.text = "error saving data"
             self.ids.label_notif.color = 1,0,0
 
